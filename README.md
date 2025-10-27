@@ -43,15 +43,15 @@
 
 ### 🏠 Dashboard Utama
 
-![Dashboard](screenshots/Screenshot from 2025-10-27 23-57-12.png)
+![Dashboard](screenshot/Screenshot from 2025-10-27 23-57-12.png)
 
 ### 💵 Grafik Bulanan Pengeluaran
 
-![Grafik Bulanan Pengeluaran](screenshots/Screenshot from 2025-10-27 23-57-38.png)
+![Grafik Bulanan Pengeluaran](screenshot/Screenshot from 2025-10-27 23-57-38.png)
 
 ### 💵 Formn Pengeluaran
 
-![Form Pengeluaran](screenshots/Screenshot from 2025-10-27 23-58-02.png)
+![Form Pengeluaran](screenshot/Screenshot from 2025-10-27 23-58-02.png)
 
 ---
 
