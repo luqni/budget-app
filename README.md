@@ -43,9 +43,8 @@
 
 ### 🏠 Dashboard Utama
 
-![Dashboard](screenshot/Screenshot from 2025-10-27 23-57-12.png)
+[Dashboard](screenshot/Screenshot from 2025-10-27 23-57-12.png)
 
-[Dashboard Budgeting](https://i.imgur.com/abcd123.png)
 
 ### 💵 Grafik Bulanan Pengeluaran
 
