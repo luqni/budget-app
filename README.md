@@ -16,7 +16,7 @@
 
 ---
 
-## 📸 Tampilan Aplikasi (Coming Soon)
+## 📸 Tampilan Aplikasi
 
 > Gambar tampilan dashboard dan fitur utama akan segera ditambahkan di sini.
 >
@@ -43,20 +43,15 @@
 
 ### 🏠 Dashboard Utama
 
-[Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-12.png)
-<p align="center">
-  <img src="[screenshots/Screenshot from 2025-10-27 23-57-12.png](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-12.png)" width="600" alt="Dashboard">
-</p>
-
-
+![Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-12.png)
 
 ### 💵 Grafik Bulanan Pengeluaran
 
-![Grafik Bulanan Pengeluaran](screenshot/Screenshot from 2025-10-27 23-57-38.png)
+![Grafik Bulanan Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-38.png)
 
 ### 💵 Formn Pengeluaran
 
-![Form Pengeluaran](screenshot/Screenshot from 2025-10-27 23-58-02.png)
+![Form Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-58-02.png)
 
 ---
 
