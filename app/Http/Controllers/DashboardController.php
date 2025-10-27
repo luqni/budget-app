@@ -7,28 +7,55 @@ use App\Models\Expense;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $expenses = Expense::latest()->get();
-        $totalExpense = $expenses->sum('amount');
+        // Ambil bulan filter dari query string (misalnya ?month=2025-10)
+        $filterMonth = $request->query('month');
 
-        // Misal sementara income statis
-        $income = 5000000;
-        $expense = $totalExpense;
+        // Ambil semua data pengeluaran, dengan filter opsional
+        $query = Expense::orderBy('month', 'desc');
 
-        return view('dashboard', compact('expenses', 'income', 'expense', 'totalExpense'));
+        if ($filterMonth) {
+            $query->where('month', $filterMonth);
+        }
+
+        $expenses = $query->get()->groupBy('month');
+
+        // Hitung total pemasukan, pengeluaran, dan saldo
+        $income = 5000000; // Bisa diganti dari tabel incomes nanti
+        $expenseTotal = $query->sum('amount');
+        $balance = $income - $expenseTotal;
+
+        // Ambil daftar semua bulan unik untuk dropdown filter
+        $months = Expense::select('month')
+            ->distinct()
+            ->orderBy('month', 'desc')
+            ->pluck('month');
+
+        return view('dashboard', [
+            'groupedExpenses' => $expenses,
+            'income' => $income,
+            'expense' => $expenseTotal,
+            'balance' => $balance,
+            'totalExpense' => $expenseTotal,
+            'months' => $months,
+            'selectedMonth' => $filterMonth,
+        ]);
     }
+
 
     public function store(Request $request)
     {
-        $request->validate([
-            'note' => 'required|string',
-            'amount' => 'required|numeric|min:1'
+        $data = $request->validate([
+            'note' => 'required|string|max:255',
+            'amount' => 'required|numeric',
+            'month' => 'required|date_format:Y-m',
         ]);
 
         $expense = Expense::create([
-            'note' => $request->note,
-            'amount' => $request->amount
+            'note' => $data['note'],
+            'amount' => $data['amount'],
+            'month' => $data['month'],
         ]);
 
         return response()->json($expense);
@@ -39,33 +66,38 @@ class DashboardController extends Controller
         $driver = \DB::getDriverName();
 
         if ($driver === 'sqlite') {
-            // Gunakan strftime untuk SQLite
+            // SQLite tidak perlu DATE_FORMAT, cukup ambil langsung kolom month
             $data = \App\Models\Expense::selectRaw('
-                    strftime("%Y-%m", created_at) as month,
+                    month,
                     SUM(amount) as total
                 ')
-                ->where('created_at', '>=', now()->subYear())
+                ->where('month', '>=', now()->subYear()->format('Y-m'))
                 ->groupBy('month')
                 ->orderBy('month', 'asc')
                 ->get();
         } else {
-            // Gunakan DATE_FORMAT untuk MySQL / PostgreSQL
+            // MySQL / PostgreSQL
             $data = \App\Models\Expense::selectRaw('
-                    DATE_FORMAT(created_at, "%Y-%m") as month,
+                    month,
                     SUM(amount) as total
                 ')
-                ->where('created_at', '>=', now()->subYear())
+                ->where('month', '>=', now()->subYear()->format('Y-m'))
                 ->groupBy('month')
                 ->orderBy('month', 'asc')
                 ->get();
         }
 
-        // Ubah label bulan jadi nama bulan (contoh: Oktober 2025)
+        // Ubah format bulan jadi nama bulan lengkap (misalnya: Oktober 2025)
         $data = $data->map(function ($item) {
-            $monthName = \Carbon\Carbon::createFromFormat('Y-m', $item->month)->translatedFormat('F Y');
+            try {
+                $monthName = \Carbon\Carbon::createFromFormat('Y-m', $item->month)->translatedFormat('F Y');
+            } catch (\Exception $e) {
+                $monthName = $item->month; // fallback kalau format tidak valid
+            }
+
             return [
                 'month' => $monthName,
-                'total' => $item->total
+                'total' => (int) $item->total,
             ];
         });
 

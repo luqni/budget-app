@@ -53,11 +53,17 @@
     const notesList = document.getElementById('notesList');
 
     // Tambah data baru
-    noteForm.addEventListener('submit', function(e) {
+    document.getElementById('noteForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
-        const noteText = document.getElementById('noteText').value;
+        const noteText = document.getElementById('noteText').value.trim();
+        const month = document.getElementById('noteMonth').value; // <--- ambil bulan dari input
         const amount = noteText.match(/\d+/)?.[0] ?? 0;
+
+        if (!month || !noteText) {
+            alert('Lengkapi catatan dan bulan terlebih dahulu!');
+            return;
+        }
 
         fetch('{{ route('expenses.store') }}', {
             method: 'POST',
@@ -65,7 +71,11 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            body: JSON.stringify({ note: noteText, amount: amount })
+            body: JSON.stringify({
+                note: noteText,
+                amount: amount,
+                month: month  // <--- kirim bulan ke server
+            })
         })
         .then(res => res.json())
         .then(data => {
@@ -75,18 +85,22 @@
             li.innerHTML = `
                 <div class="text-section">
                     <span class="note-text">${data.note}</span>
-                    <span class="fw-bold text-danger ms-2">Rp ${data.amount.toLocaleString()}</span>
+                    <span class="fw-bold text-danger ms-2">Rp ${parseInt(data.amount).toLocaleString()}</span>
+                    <span class="note-date d-block">${data.month}</span>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
                     <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
-                </div>`;
-            notesList.prepend(li);
+                </div>
+            `;
+            document.getElementById('notesList').prepend(li);
 
-            updateTotal(data.amount);
+            updateTotal(parseInt(data.amount));
             document.getElementById('noteText').value = '';
             loadChartData();
-        });
+            refreshTotal();
+        })
+        .catch(err => console.error(err));
     });
 
     // Edit dan Hapus
@@ -97,11 +111,16 @@
         if (e.target.classList.contains('delete-btn')) {
             if (confirm('Yakin ingin menghapus catatan ini?')) {
                 fetch(`/expenses/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ _method: 'DELETE' }) // spoofing
                 }).then(() => {
-                    const amount = parseInt(li.querySelector('.text-section span.fw-bold')
-                        .innerText.replace(/\D/g, ''));
+                    const amount = parseInt(
+                        li.querySelector('.text-section span.fw-bold').innerText.replace(/\D/g, '')
+                    );
                     li.remove();
                     updateTotal(-amount);
                     loadChartData();
@@ -119,12 +138,12 @@
             const newAmount = newNote.match(/\d+/)?.[0] ?? oldAmount;
 
             fetch(`/expenses/${id}`, {
-                method: 'PUT',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
-                body: JSON.stringify({ note: newNote, amount: newAmount })
+                body: JSON.stringify({ _method: 'PUT', note: newNote, amount: newAmount })
             })
             .then(res => res.json())
             .then(data => {
@@ -143,20 +162,6 @@
         total += change;
         totalEl.innerText = total.toLocaleString();
 
-        const totalElCard = document.getElementById('totalExpenseCard');
-        totalElCard.innerText = total.toLocaleString();
-
-        // Ambil nilai total pemasukan (dari card)
-        const totalPemasukan = document.getElementById('totalPemasukanCard');
-        let totalPem = parseInt(totalPemasukan.innerText.replace(/\D/g, ''));
-
-        // Hitung saldo = pemasukan - pengeluaran
-        const saldo = totalPem - total;
-
-        // Update kartu saldo
-        const totalSaldo = document.getElementById('totalSaldoCard');
-        totalSaldo.innerText = saldo.toLocaleString();
-
     }
 
     function refreshTotal() {
@@ -165,6 +170,44 @@
             sum += parseInt(el.innerText.replace(/\D/g, ''));
         });
         document.getElementById('totalExpense').innerText = sum.toLocaleString();
+        
+        const totalElCard = document.getElementById('totalExpenseCard');
+        totalElCard.innerText = sum.toLocaleString();
+
+        // Ambil nilai total pemasukan (dari card)
+        const totalPemasukan = document.getElementById('totalPemasukanCard');
+        let totalPem = parseInt(totalPemasukan.innerText.replace(/\D/g, ''));
+
+        // Hitung saldo = pemasukan - pengeluaran
+        const saldo = totalPem - sum;
+
+        // Update kartu saldo
+        const totalSaldo = document.getElementById('totalSaldoCard');
+        totalSaldo.innerText = saldo.toLocaleString();
     }
+
+
+    document.getElementById('monthSelect').addEventListener('change', function() {
+        const selectedMonth = this.value;
+        const url = new URL(window.location.href);
+        
+        if (selectedMonth) {
+            url.searchParams.set('month', selectedMonth);
+        } else {
+            url.searchParams.delete('month');
+        }
+
+        window.location.href = url.toString(); // Reload halaman dengan parameter baru
+
+    });
+
+    document.getElementById('noteText').addEventListener('input', function (e) {
+    let value = e.target.value.replace(/\D/g, ''); // hanya ambil angka
+    if (value) {
+        e.target.value = new Intl.NumberFormat('id-ID').format(value);
+    } else {
+        e.target.value = '';
+    }
+});
 
 </script>

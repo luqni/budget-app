@@ -65,6 +65,97 @@
         text-align: center;
         margin-bottom: 0.75rem;
     }
+
+    /* Styling untuk daftar catatan */
+    #notesList {
+        list-style: none;
+        padding: 0;
+        margin-top: 1rem;
+    }
+
+    #notesList li {
+        border: 1px solid #e5e7eb; /* garis pembatas */
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        background: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+    }
+
+    #notesList li:hover {
+        background: #f9fafb;
+        transform: scale(1.01);
+    }
+
+    .text-section {
+        flex: 1;
+        font-size: 15px;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    .text-section .note-text {
+        font-weight: 500;
+    }
+
+    .text-section .fw-bold {
+        display: inline-block;
+        margin-top: 4px;
+        color: #dc2626;
+        font-size: 14px;
+    }
+
+    .btn {
+        font-size: 13px;
+    }
+
+    @media (max-width: 576px) {
+        #notesList li {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        #notesList li div:last-child {
+            margin-top: 8px;
+        }
+    }
+
+    * Tambahan style untuk grouping per bulan */
+    .month-divider {
+        border-bottom: 2px solid #3b82f6;
+        margin: 1.5rem 0 1rem;
+        font-weight: 600;
+        color: #1e3a8a;
+        font-size: 1rem;
+    }
+
+    .note-date {
+        font-size: 0.85rem;
+        color: #6b7280;
+        display: block;
+    }
+
+    #notesList li {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        background: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+    }
+
+    #notesList li:hover {
+        background: #f9fafb;
+        transform: scale(1.01);
+    }
 </style>
 
 <div class="container py-3">
@@ -104,30 +195,63 @@
             <h5 class="mb-3 text-center">Tambah Catatan</h5>
             <form id="noteForm" class="mb-3">
                 @csrf
-                <div class="row g-2">
-                    <div class="col-12 col-md-8 mb-2 mb-md-0">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-3 mb-2 mb-md-0">
+                        <label for="noteMonth" class="form-label">Bulan</label>
+                        <input type="month" id="noteMonth" class="form-control" value="{{ now()->format('Y-m') }}" required>
+                    </div>
+                    <div class="col-12 col-md-7 mb-2 mb-md-0">
+                        <label for="noteText" class="form-label">Catatan</label>
                         <input type="text" id="noteText" class="form-control" placeholder="Bayar kos 500000" required>
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-2">
                         <button class="btn btn-primary w-100" type="submit">Tambah</button>
                     </div>
                 </div>
             </form>
 
-            <ul id="notesList" class="list-group mt-3">
-                @foreach ($expenses as $exp)
-                    <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ $exp->id }}">
-                        <div class="text-section">
-                            <span class="note-text">{{ $exp->note }}</span>
-                            <span class="fw-bold text-danger ms-2">Rp {{ number_format($exp->amount) }}</span>
-                        </div>
-                        <div class="mt-2 mt-md-0">
-                            <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
-                            <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
-                        </div>
-                    </li>
+            {{-- Filter Bulan Arsip --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form id="monthFilterForm" class="d-flex align-items-center justify-content-between flex-wrap">
+                        <label for="monthSelect" class="fw-semibold me-2 mb-2 mb-md-0">Lihat Arsip Bulan:</label>
+                        <select id="monthSelect" class="form-select w-auto" name="month">
+                            <option value="">Semua Bulan</option>
+                            @foreach ($months as $month)
+                                <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <div id="notesList">
+                @foreach ($groupedExpenses as $month => $expenses)
+                    <div class="month-divider">
+                        {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}
+                    </div>
+
+                    <ul class="list-unstyled">
+                        @foreach ($expenses as $exp)
+                            <li data-id="{{ $exp->id }}">
+                                <div class="text-section">
+                                    <span class="note-text">{{ $exp->note }}</span><br>
+                                    <span class="fw-bold">Rp {{ number_format($exp->amount) }}</span>
+                                    <span class="note-date">
+                                        {{ \Carbon\Carbon::parse($exp->created_at)->translatedFormat('d M Y') }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
                 @endforeach
-            </ul>
+            </div>
 
             <div class="mt-3 text-end fw-bold">
                 Total: Rp <span id="totalExpense">{{ number_format($totalExpense) }}</span>

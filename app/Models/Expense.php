@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Expense extends Model
 {
-    protected $fillable = ['user_id', 'note', 'amount', 'date'];
+    protected $fillable = ['user_id', 'note', 'amount', 'date', 'month'];
 
     protected $casts = [
         'date' => 'date',
