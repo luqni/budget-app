@@ -43,7 +43,7 @@
 
 ### 🏠 Dashboard Utama
 
-[Dashboard](screenshot/Screenshot from 2025-10-27 23-57-12.png)
+[Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-12.png)
 <p align="center">
   <img src="[screenshots/Screenshot from 2025-10-27 23-57-12.png](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-12.png)" width="600" alt="Dashboard">
 </p>
