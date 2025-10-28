@@ -201,13 +201,13 @@
 
     });
 
-    document.getElementById('noteText').addEventListener('input', function (e) {
-    let value = e.target.value.replace(/\D/g, ''); // hanya ambil angka
-    if (value) {
-        e.target.value = new Intl.NumberFormat('id-ID').format(value);
-    } else {
-        e.target.value = '';
-    }
-});
+    document.getElementById('noteText').addEventListener('blur', function (e) {
+        let value = e.target.value;
+
+        // Ganti semua deretan angka menjadi format dengan pemisah ribuan
+        e.target.value = value.replace(/\d+/g, match => {
+            return new Intl.NumberFormat('id-ID').format(Number(match));
+        });
+    });
 
 </script>
