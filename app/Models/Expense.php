@@ -12,5 +12,10 @@ class Expense extends Model
     protected $casts = [
         'date' => 'date',
     ];
+
+    public function details()
+    {
+        return $this->hasMany(ExpenseDetail::class);
+    }
 }
 

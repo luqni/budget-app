@@ -246,6 +246,7 @@
                                 <div>
                                     <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
                                     <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
+                                    <button class="btn btn-sm btn-outline-primary detail-btn">Detail</button>
                                 </div>
                             </li>
                         @endforeach
@@ -255,6 +256,57 @@
 
             <div class="mt-3 text-end fw-bold">
                 Total: Rp <span id="totalExpense">{{ number_format($totalExpense) }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detail Belanja</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <h6 id="detailTitle" class="mb-3"></h6>
+
+                    <table class="table table-sm" id="detailTable">
+                        <thead>
+                            <tr>
+                                <th>Nama Item</th>
+                                <th>Qty</th>
+                                <th>Harga (Rp)</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <hr>
+
+                    <form id="detailForm">
+                        @csrf
+                        <input type="hidden" id="parentNoteId">
+
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <input type="text" id="detailName" class="form-control" placeholder="Nama item" required>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" id="detailQty" class="form-control" placeholder="Qty" required min="1">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" id="detailPrice" class="form-control" placeholder="Harga" required min="0">
+                            </div>
+                            <div class="col-md-1 d-grid">
+                                <button class="btn btn-primary btn-sm">+</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>

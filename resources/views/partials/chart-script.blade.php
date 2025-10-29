@@ -210,4 +210,83 @@
     //     });
     // });
 
+    document.addEventListener('click', async function(e) {
+        if (e.target.classList.contains('detail-btn')) {
+            const li = e.target.closest('li');
+            const noteId = li.dataset.id;
+            const noteText = li.querySelector('.note-text').innerText;
+
+            document.getElementById('parentNoteId').value = noteId;
+            document.getElementById('detailTitle').innerText = "Rincian: " + noteText;
+
+            // Load data detail via AJAX (controller menyusul)
+            const res = await fetch(`/notes/${noteId}/details`);
+            const data = await res.json();
+
+            updateDetailTable(data);
+
+            new bootstrap.Modal(document.getElementById('detailModal')).show();
+        }
+    });
+
+    function updateDetailTable(details) {
+        const tbody = document.querySelector('#detailTable tbody');
+        tbody.innerHTML = "";
+
+        details.forEach(det => {
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr data-id="${det.id}">
+                    <td>${det.name}</td>
+                    <td>${det.qty}</td>
+                    <td>${parseInt(det.price).toLocaleString()}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger delete-detail-btn">Hapus</button>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+
+    document.getElementById('detailForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const payload = {
+            note_id: document.getElementById('parentNoteId').value,
+            name: document.getElementById('detailName').value,
+            qty: document.getElementById('detailQty').value,
+            price: document.getElementById('detailPrice').value,
+        };
+
+        const res = await fetch('/details', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        updateDetailTable(data.details); // response harus mengembalikan detail list terbaru
+        this.reset();
+    });
+
+    document.addEventListener('click', async function(e) {
+        if (e.target.classList.contains('delete-detail-btn')) {
+            const tr = e.target.closest('tr');
+            const id = tr.dataset.id;
+
+            if(!confirm("Hapus item ini?")) return;
+
+            const res = await fetch(`/details/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+
+            const data = await res.json();
+            updateDetailTable(data.details);
+        }
+    });
 </script>
