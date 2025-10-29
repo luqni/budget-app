@@ -91,6 +91,7 @@
                 <div>
                     <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
                     <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
+                    <button class="btn btn-sm btn-outline-primary detail-btn">Detail</button>
                 </div>
             `;
             document.getElementById('notesList').prepend(li);
