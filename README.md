@@ -142,4 +142,4 @@ Proyek ini menggunakan lisensi MIT License
 Jika kamu menyukai proyek ini, bantu dengan ⭐️ memberi star di GitHub.
 Atau jika ingin berdiskusi, buka Issues untuk memberikan ide atau melaporkan bug.
 
-<p align="center">Dibuat dengan ❤️ menggunakan Laravel oleh <b>Muhammad Luqni Baehaqi</b></p> ```
+<p align="center">Dibuat dengan ❤️ menggunakan Laravel oleh <b>Muhammad Luqni Baehaqi</b></p>
