@@ -48,14 +48,13 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'note' => 'required|string|max:255',
-            'amount' => 'required|numeric',
             'month' => 'required|date_format:Y-m',
         ]);
 
         $expense = Expense::create([
             'note' => $data['note'],
-            'amount' => $data['amount'],
             'month' => $data['month'],
+            'amount' => 0 // default
         ]);
 
         return response()->json($expense);

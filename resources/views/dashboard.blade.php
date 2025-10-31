@@ -13,6 +13,7 @@
     .income { background-color: #22c55e; }    /* green */
     .expense { background-color: #ef4444; }   /* red */
     .balance { background-color: #3b82f6; }   /* blue */
+    .realization { background-color: #d47f00ff; } 
 
     /* Responsive layout */
     @media (max-width: 768px) {
@@ -161,19 +162,25 @@
 <div class="container py-3">
     {{-- Ringkasan --}}
     <div class="row g-3 mb-3 text-center">
-        <div class="col-4 col-md-4 mb-2 mb-md-0">
+        <div class="col-4 col-md-3 mb-2 mb-md-0">
             <div class="summary-card income">
                 <h5>Pemasukan</h5>
                 <p id="totalPemasukanCard">Rp {{ number_format($income ?? 5000000) }}</p>
             </div>
         </div>
-        <div class="col-4 col-md-4 mb-2 mb-md-0">
+        <div class="col-4 col-md-3 mb-2 mb-md-0">
             <div class="summary-card expense">
-                <h5>Pengeluaran</h5>
+                <h5>Alokasi</h5>
                 <p id="totalExpenseCard">Rp {{ number_format($expense ?? 2500000) }}</p>
             </div>
         </div>
-        <div class="col-4 col-md-4 mb-2 mb-md-0">
+        <div class="col-4 col-md-3 mb-2 mb-md-0">
+            <div class="summary-card realization">
+                <h5>Realisasi</h5>
+                <p id="totalExpenseCard">Rp {{ number_format($expense ?? 2500000) }}</p>
+            </div>
+        </div>
+        <div class="col-4 col-md-3 mb-2 mb-md-0">
             <div class="summary-card balance">
                 <h5>Saldo</h5>
                 <p id="totalSaldoCard">Rp {{ number_format(($income ?? 5000000) - ($expense ?? 2500000)) }}</p>

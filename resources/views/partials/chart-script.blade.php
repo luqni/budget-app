@@ -58,7 +58,6 @@
 
         const noteText = document.getElementById('noteText').value.trim();
         const month = document.getElementById('noteMonth').value; // <--- ambil bulan dari input
-        const amount = noteText.match(/\d+/)?.[0] ?? 0;
 
         if (!month || !noteText) {
             alert('Lengkapi catatan dan bulan terlebih dahulu!');
@@ -73,7 +72,6 @@
             },
             body: JSON.stringify({
                 note: noteText,
-                amount: amount,
                 month: month  // <--- kirim bulan ke server
             })
         })
@@ -85,7 +83,7 @@
             li.innerHTML = `
                 <div class="text-section">
                     <span class="note-text">${data.note}</span>
-                    <span class="fw-bold text-danger ms-2">Rp ${parseInt(data.amount).toLocaleString()}</span>
+                    <span class="fw-bold text-danger ms-2">Rp 0</span>
                     <span class="note-date d-block">${data.month}</span>
                 </div>
                 <div>
@@ -96,7 +94,7 @@
             `;
             document.getElementById('notesList').prepend(li);
 
-            updateTotal(parseInt(data.amount));
+            // updateTotal(parseInt(data.amount));
             document.getElementById('noteText').value = '';
             loadChartData();
             refreshTotal();
@@ -236,7 +234,7 @@
 
         details.forEach(det => {
             tbody.insertAdjacentHTML('beforeend', `
-                <tr data-id="${det.id}">
+                <tr data-id="${det.id}" data-price="${det.price}">
                     <td>${det.name}</td>
                     <td>${det.qty}</td>
                     <td>${parseInt(det.price).toLocaleString()}</td>
@@ -269,6 +267,11 @@
 
         const data = await res.json();
         updateDetailTable(data.details); // response harus mengembalikan detail list terbaru
+        
+        refreshTotal();
+        loadChartData();
+        updateTotal(parseInt(payload.price));
+        updateParentAmount(payload.note_id, data.total);
         this.reset();
     });
 
@@ -276,6 +279,7 @@
         if (e.target.classList.contains('delete-detail-btn')) {
             const tr = e.target.closest('tr');
             const id = tr.dataset.id;
+            const price = tr.dataset.price;
 
             if(!confirm("Hapus item ini?")) return;
 
@@ -288,6 +292,16 @@
 
             const data = await res.json();
             updateDetailTable(data.details);
+            refreshTotal();
+            loadChartData();
+            updateTotal(-parseInt(price));
+            updateParentAmount(document.getElementById('parentNoteId').value, data.total);
         }
     });
+
+    function updateParentAmount(noteId, newAmount) {
+        const li = document.querySelector(`li[data-id="${noteId}"]`);
+        if (!li) return;
+        li.querySelector('.fw-bold').textContent = `Rp ${parseInt(newAmount).toLocaleString()}`;
+    }
 </script>
