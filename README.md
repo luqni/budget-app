@@ -43,15 +43,18 @@
 
 ### 🏠 Dashboard Utama
 
-![Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-12.png)
+![Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202025-11-01%20at%2017.00.51.png)
 
 ### 💵 Grafik Bulanan Pengeluaran
 
-![Grafik Bulanan Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-57-38.png)
+![Grafik Bulanan Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202025-11-01%20at%2017.01.14.png)
 
-### 💵 Formn Pengeluaran
+### 💵 List Pengeluaran
 
-![Form Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screenshot%20from%202025-10-27%2023-58-02.png)
+![Form Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202025-11-01%20at%2017.01.22.png)
+
+### 💵 Checklist dan Detail Pengeluaran
+![Checklist dan Detail Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202025-11-01%20at%2017.01.29.png)
 
 ---
 
