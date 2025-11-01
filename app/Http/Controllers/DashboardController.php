@@ -4,16 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Expense;
+use App\Models\ExpenseDetail;
+use DB;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Ambil bulan filter dari query string (misalnya ?month=2025-10)
         $filterMonth = $request->query('month');
 
-        // Ambil semua data pengeluaran, dengan filter opsional
-        $query = Expense::orderBy('month', 'desc');
+        $query = Expense::withSum([
+            'details as total_realisasi' => function ($q) {
+                $q->where('is_checked', true);
+            }
+        ], DB::raw('qty * price'))
+        ->orderBy('month', 'desc');
 
         if ($filterMonth) {
             $query->where('month', $filterMonth);
@@ -21,21 +26,31 @@ class DashboardController extends Controller
 
         $expenses = $query->get()->groupBy('month');
 
-        // Hitung total pemasukan, pengeluaran, dan saldo
-        $income = 5000000; // Bisa diganti dari tabel incomes nanti
-        $expenseTotal = $query->sum('amount');
-        $balance = $income - $expenseTotal;
+        // Total Income (sementara masih statis)
+        $income = 5000000;
 
-        // Ambil daftar semua bulan unik untuk dropdown filter
-        $months = Expense::select('month')
-            ->distinct()
-            ->orderBy('month', 'desc')
-            ->pluck('month');
+        // Total Alokasi (jumlah amount dari tabel expenses)
+        $expenseTotal = Expense::when($filterMonth, fn($q)=>$q->where('month',$filterMonth))->sum('amount');
+
+        // Total Realisasi (jumlah semua total_realisasi dari setiap expense)
+        $realizationTotal = ExpenseDetail::when($filterMonth, function($q) use ($filterMonth) {
+            $q->whereHas('expense', fn($e)=>$e->where('month', $filterMonth));
+        })
+        ->where('is_checked', true)
+        ->selectRaw('SUM(qty * price) as total')
+        ->value('total') ?? 0;
+
+        // Saldo
+        $balance = $income - $realizationTotal;
+
+        // Dropdown bulan
+        $months = Expense::select('month')->distinct()->orderBy('month', 'desc')->pluck('month');
 
         return view('dashboard', [
             'groupedExpenses' => $expenses,
             'income' => $income,
-            'expense' => $expenseTotal,
+            'expense' => $expenseTotal, // Total Alokasi
+            'realization' => $realizationTotal, // Total Realisasi
             'balance' => $balance,
             'totalExpense' => $expenseTotal,
             'months' => $months,

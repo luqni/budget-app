@@ -18,6 +18,8 @@ Route::delete('/expenses/{id}', [DashboardController::class, 'destroy'])->name('
 Route::get('/notes/{id}/details', [ExpenseDetailController::class, 'index']);
 Route::post('/details', [ExpenseDetailController::class, 'store']);
 Route::delete('/details/{id}', [ExpenseDetailController::class, 'destroy']);
+Route::patch('/details/{id}/check', [ExpenseDetailController::class, 'check']);
+
 
 
 

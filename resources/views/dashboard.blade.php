@@ -110,6 +110,13 @@
         font-size: 14px;
     }
 
+    .text-section .realization-amount {
+        display: inline-block;
+        margin-top: 4px;
+        color: #d47f00ff;
+        font-size: 14px;
+    }
+
     .btn {
         font-size: 13px;
     }
@@ -177,7 +184,7 @@
         <div class="col-4 col-md-3 mb-2 mb-md-0">
             <div class="summary-card realization">
                 <h5>Realisasi</h5>
-                <p id="totalExpenseCard">Rp {{ number_format($expense ?? 2500000) }}</p>
+                <p id="totalRealizationCard">Rp {{ number_format($realization ?? 2500000) }}</p>
             </div>
         </div>
         <div class="col-4 col-md-3 mb-2 mb-md-0">
@@ -209,7 +216,7 @@
                     </div>
                     <div class="col-12 col-md-7 mb-2 mb-md-0">
                         <label for="noteText" class="form-label">Catatan</label>
-                        <input type="text" id="noteText" class="form-control" placeholder="Bayar kos 500000" required>
+                        <input type="text" id="noteText" class="form-control" placeholder="Belanja Bulanan 500000" required>
                     </div>
                     <div class="col-12 col-md-2">
                         <button class="btn btn-primary w-100" type="submit">Tambah</button>
@@ -245,7 +252,8 @@
                             <li data-id="{{ $exp->id }}">
                                 <div class="text-section">
                                     <span class="note-text">{{ $exp->note }}</span><br>
-                                    <span class="fw-bold">Rp {{ number_format($exp->amount) }}</span>
+                                    Alokasi : <span class="fw-bold">Rp {{ number_format($exp->amount) }}</span> <br/>
+                                    Realisasi : <span class="realization-amount">Rp {{ number_format($exp->total_realisasi) }}</span>
                                     <span class="note-date">
                                         {{ \Carbon\Carbon::parse($exp->created_at)->translatedFormat('d M Y') }}
                                     </span>
@@ -282,6 +290,7 @@
                     <table class="table table-sm" id="detailTable">
                         <thead>
                             <tr>
+                                <th></th>
                                 <th>Nama Item</th>
                                 <th>Qty</th>
                                 <th>Harga (Rp)</th>

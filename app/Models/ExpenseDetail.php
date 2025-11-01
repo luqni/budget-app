@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExpenseDetail extends Model
 {
-    protected $fillable = ['expense_id', 'name', 'qty', 'price'];
+    protected $fillable = ['expense_id', 'name', 'qty', 'price','is_checked'];
 
     public function expense()
     {

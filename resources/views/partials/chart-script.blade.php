@@ -235,6 +235,9 @@
         details.forEach(det => {
             tbody.insertAdjacentHTML('beforeend', `
                 <tr data-id="${det.id}" data-price="${det.price}">
+                    <td>
+                        <input type="checkbox" class="form-check-input detail-check" ${det.is_checked ? 'checked' : ''}>
+                    </td>
                     <td>${det.name}</td>
                     <td>${det.qty}</td>
                     <td>${parseInt(det.price).toLocaleString()}</td>
@@ -298,6 +301,35 @@
             updateParentAmount(document.getElementById('parentNoteId').value, data.total);
         }
     });
+
+    document.addEventListener('change', async function(e) {
+        if (e.target.classList.contains('detail-check')) {
+
+            const tr = e.target.closest('tr');
+            const detailId = tr.dataset.id;
+            const price = parseInt(tr.dataset.price);
+            const noteId = document.getElementById('parentNoteId').value;
+            const isChecked = e.target.checked ? 1 : 0;
+
+            const res = await fetch(`/details/${detailId}/check`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ is_checked: isChecked })
+            });
+
+            const data = await res.json();
+
+            const li = document.querySelector(`li[data-id="${noteId}"]`);
+            li.querySelector('.realization-amount').textContent = `Rp ${parseInt(data.total).toLocaleString()}`;
+
+            refreshTotal();
+            loadChartData();
+        }
+    });
+
 
     function updateParentAmount(noteId, newAmount) {
         const li = document.querySelector(`li[data-id="${noteId}"]`);

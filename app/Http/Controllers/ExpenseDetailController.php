@@ -57,4 +57,25 @@ class ExpenseDetailController extends Controller
         return response()->json(['details' => $details, 'total' => $total]);
     }
 
+    public function check(Request $request, $id)
+    {
+        $detail = ExpenseDetail::findOrFail($id);
+        $detail->update(['is_checked' => $request->is_checked]);
+
+        // Hitung ulang total pengeluaran pada parent expense
+        $total = ExpenseDetail::where('expense_id', $detail->expense_id)
+            ->where('is_checked', true)
+            ->selectRaw('SUM(qty * price) as total')
+            ->value('total') ?? 0;
+
+        // Update kolom amount pada expense
+        // $detail->expense->update(['amount' => $total]);
+
+        return response()->json([
+            'success' => true,
+            'total' => $total
+        ]);
+    }
+
+
 }
