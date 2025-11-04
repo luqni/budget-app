@@ -164,30 +164,45 @@
         background: #f9fafb;
         transform: scale(1.01);
     }
+
+    /* Efek hover supaya terasa hidup */
+    .summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
+
 </style>
 
 <div class="container py-3">
     {{-- Ringkasan --}}
     <div class="row g-3 mb-3 text-center">
         <div class="col-4 col-md-3 mb-2 mb-md-0">
-            <div class="summary-card income">
-                <h5>Pemasukan</h5>
-                <p id="totalPemasukanCard">Rp {{ number_format($income ?? 5000000) }}</p>
+            <div class="summary-card income d-flex align-items-center justify-content-between shadow-sm"
+                style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editIncomeModal">
+
+                <div>
+                    <h5>Pemasukan</h5>
+                    <p id="totalPemasukanCard">Rp {{ number_format($income) }}</p>
+                </div>
+
+                <!-- Icon Edit -->
+                <i class="bi bi-pencil-square" style="font-size: 1.3rem;"></i>
             </div>
         </div>
-        <div class="col-4 col-md-3 mb-2 mb-md-0">
+
+        <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card expense">
                 <h5>Alokasi</h5>
                 <p id="totalExpenseCard">Rp {{ number_format($expense ?? 2500000) }}</p>
             </div>
         </div>
-        <div class="col-4 col-md-3 mb-2 mb-md-0">
+        <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card realization">
                 <h5>Realisasi</h5>
                 <p id="totalRealizationCard">Rp {{ number_format($realization ?? 2500000) }}</p>
             </div>
         </div>
-        <div class="col-4 col-md-3 mb-2 mb-md-0">
+        <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card balance">
                 <h5>Saldo</h5>
                 <p id="totalSaldoCard">Rp {{ number_format(($income ?? 5000000) - ($expense ?? 2500000)) }}</p>
@@ -212,24 +227,24 @@
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-md-3 mb-2 mb-md-0">
                         <label for="noteMonth" class="form-label">Bulan</label>
-                        <input type="month" id="noteMonth" class="form-control" value="{{ now()->format('Y-m') }}" required>
+                        <input type="month" id="noteMonth" class="form-control shadow-sm" value="{{ now()->format('Y-m') }}" required>
                     </div>
                     <div class="col-12 col-md-7 mb-2 mb-md-0">
                         <label for="noteText" class="form-label">Catatan</label>
-                        <input type="text" id="noteText" class="form-control" placeholder="Belanja Bulanan 500000" required>
+                        <input type="text" id="noteText" class="form-control shadow-sm" placeholder="Belanja Bulanan 500000" required>
                     </div>
                     <div class="col-12 col-md-2">
-                        <button class="btn btn-primary w-100" type="submit">Tambah</button>
+                        <button class="btn btn-primary w-100 shadow-sm" type="submit">Tambah</button>
                     </div>
                 </div>
             </form>
 
             {{-- Filter Bulan Arsip --}}
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4 ">
                 <div class="card-body">
                     <form id="monthFilterForm" class="d-flex align-items-center justify-content-between flex-wrap">
                         <label for="monthSelect" class="fw-semibold me-2 mb-2 mb-md-0">Lihat Arsip Bulan:</label>
-                        <select id="monthSelect" class="form-select w-auto" name="month">
+                        <select id="monthSelect" class="form-select w-auto shadow-sm" name="month">
                             <option value="">Semua Bulan</option>
                             @foreach ($months as $month)
                                 <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
@@ -241,13 +256,23 @@
                 </div>
             </div>
 
+            <div class="mb-3 d-flex justify-content-end">
+                <div class="input-group" style="max-width: 260px;">
+                    <span class="input-group-text bg-white shadow-sm">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="searchNotes" class="form-control shadow-sm" placeholder="Cari catatan...">
+                </div>
+            </div>
+
+
             <div id="notesList">
                 @foreach ($groupedExpenses as $month => $expenses)
                     <div class="month-divider">
                         {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}
                     </div>
 
-                    <ul class="list-unstyled">
+                    <ul class="list-unstyled shadow-sm">
                         @foreach ($expenses as $exp)
                             <li data-id="{{ $exp->id }}">
                                 <div class="text-section">
@@ -287,18 +312,21 @@
 
                     <h6 id="detailTitle" class="mb-3"></h6>
 
-                    <table class="table table-sm" id="detailTable">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Nama Item</th>
-                                <th>Qty</th>
-                                <th>Harga (Rp)</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                    <!-- Scrollable Table -->
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm" id="detailTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th></th>
+                                    <th>Nama Item</th>
+                                    <th>Qty</th>
+                                    <th>Harga (Rp)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
 
                     <hr>
 
@@ -308,24 +336,66 @@
 
                         <div class="row g-2">
                             <div class="col-md-6">
-                                <input type="text" id="detailName" class="form-control" placeholder="Nama item" required>
+                                <input type="text" id="detailName" class="form-control shadow-sm" placeholder="Nama item" required>
                             </div>
                             <div class="col-md-2">
-                                <input type="number" id="detailQty" class="form-control" placeholder="Qty" required min="1">
+                                <input type="number" id="detailQty" class="form-control shadow-sm" placeholder="Qty" required min="1">
                             </div>
                             <div class="col-md-3">
-                                <input type="number" id="detailPrice" class="form-control" placeholder="Harga" required min="0">
+                                <input type="number" id="detailPrice" class="form-control shadow-sm" placeholder="Harga" required min="0">
                             </div>
                             <div class="col-md-1 d-grid">
-                                <button class="btn btn-primary btn-sm">+</button>
+                                <button class="btn btn-primary btn-sm shadow-sm"> 
+                                    <i class="bi bi-bag-plus-fill" style="font-size: 1.3rem;"></i>
+                                </button>
                             </div>
                         </div>
                     </form>
+
                 </div>
+
 
             </div>
         </div>
     </div>
+
+    @if(session('need_income') || auth()->user()->income == 0)
+    <div class="modal fade show" id="incomeModal" style="display:block; background:rgba(0,0,0,0.6)">
+        <div class="modal-dialog">
+            <div class="modal-content p-3">
+                <h4 class="mb-3">Masukkan Pemasukan Awal</h4>
+                <form action="{{ route('income.store') }}" method="POST">
+                    @csrf
+                    <input type="number" name="income" class="form-control" required placeholder="Misal: 5000000">
+                    <button class="btn btn-primary mt-3 w-100">Simpan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <div class="modal fade" id="editIncomeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content p-3 position-relative">
+
+                <!-- Tombol Close -->
+                <button type="button" class="btn-close position-absolute" 
+                    style="right: 10px; top: 10px;" 
+                    data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <h4 class="mb-3">Edit Pemasukan</h4>
+                <form action="{{ route('income.update') }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <input type="number" name="income" class="form-control" value="{{ $income }}" required>
+                    <button class="btn btn-success mt-3 w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
 </div>
 
 @include('partials.chart-script')

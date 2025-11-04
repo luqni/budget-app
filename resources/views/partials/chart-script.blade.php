@@ -312,7 +312,7 @@
             const isChecked = e.target.checked ? 1 : 0;
 
             const res = await fetch(`/details/${detailId}/check`, {
-                method: 'PATCH',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -336,4 +336,18 @@
         if (!li) return;
         li.querySelector('.fw-bold').textContent = `Rp ${parseInt(newAmount).toLocaleString()}`;
     }
+
+    document.getElementById('searchNotes').addEventListener('input', function() {
+        const search = this.value.toLowerCase();
+        const items = document.querySelectorAll('#notesList li');
+
+        items.forEach(li => {
+            const text = li.querySelector('.note-text').innerText.toLowerCase();
+            if (text.includes(search)) {
+                li.style.display = '';
+            } else {
+                li.style.display = 'none';
+            }
+        });
+    });
 </script>

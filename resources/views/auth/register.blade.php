@@ -1,52 +1,91 @@
-<x-guest-layout>
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Akun - Rumah Keuangan Keluarga</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #FFF5EA;
+            font-family: 'Poppins', sans-serif;
+        }
+        .card-cute {
+            border-radius: 20px;
+            border: 1px solid #F8DCCB;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            background: white;
+        }
+        .cute-input {
+            border-radius: 12px !important;
+            background: #FFF9F4;
+            border-color: #E3C8B5;
+        }
+        .cute-input:focus {
+            border-color: #FF9EC3;
+            box-shadow: 0 0 0 .2rem rgba(255,158,195,0.3);
+        }
+        .cute-btn {
+            background: #FF9EC3;
+            border-radius: 12px;
+            border: none;
+        }
+        .cute-btn:hover {
+            background: #FF85B4;
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100">
 
-        <!-- Name -->
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+    <div class="card card-cute p-4" style="max-width: 420px; width: 100%;">
+
+        <div class="text-center mb-3">
+            <img src="https://cdn-icons-png.flaticon.com/512/4772/4772417.png" alt="Family" class="img-fluid" style="width:120px;">
         </div>
 
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+        <h2 class="text-center fw-bold text-brown mb-2" style="color:#5A4632;">
+            Buat Akun Keluarga 👨‍👩‍👧‍👦
+        </h2>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        <p class="text-center small text-muted mb-4">
+            Catat keuangan penuh cinta, biar keluarga makin bahagia 💗
+        </p>
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
+        <form method="POST" action="{{ route('register') }}">
+            @csrf
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+            <div class="mb-3">
+                <label class="form-label" style="color:#6C584C;">Nama Kamu</label>
+                <input type="text" id="name" name="name" class="form-control cute-input" required value="{{ old('name') }}">
+                <x-input-error :messages="$errors->get('name')" class="text-danger small mt-1" />
+            </div>
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+            <div class="mb-3">
+                <label class="form-label" style="color:#6C584C;">Email</label>
+                <input type="email" id="email" name="email" class="form-control cute-input" required value="{{ old('email') }}">
+                <x-input-error :messages="$errors->get('email')" class="text-danger small mt-1" />
+            </div>
 
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
+            <div class="mb-3">
+                <label class="form-label" style="color:#6C584C;">Password</label>
+                <input type="password" id="password" name="password" class="form-control cute-input" required>
+            </div>
 
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
+            <div class="mb-4">
+                <label class="form-label" style="color:#6C584C;">Konfirmasi Password</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" class="form-control cute-input" required>
+            </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
+            <button class="btn cute-btn w-100 py-2 fw-semibold text-white">
+                Buat Akun 🎉
+            </button>
 
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+            <p class="text-center small text-muted mt-3">
+                Sudah punya akun?
+                <a href="{{ route('login') }}" class="text-decoration-none" style="color:#FF79A8;">Masuk yuk</a>
+            </p>
+        </form>
+    </div>
+
+</body>
+</html>
