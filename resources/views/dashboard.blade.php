@@ -171,43 +171,77 @@
         box-shadow: 0 6px 18px rgba(0,0,0,0.18);
     }
 
+    .sensitive.hidden {
+        filter: blur(6px);
+        transition: 0.2s;
+    }
+
+
 </style>
 
 <div class="container py-3">
     {{-- Ringkasan --}}
     <div class="row g-3 mb-3 text-center">
+
+        <!-- PEMASUKAN -->
         <div class="col-4 col-md-3 mb-2 mb-md-0">
-            <div class="summary-card income d-flex align-items-center justify-content-between shadow-sm"
-                style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#editIncomeModal">
+            <div class="summary-card income d-flex align-items-center justify-content-between shadow-sm p-2">
 
                 <div>
                     <h5>Pemasukan</h5>
-                    <p id="totalPemasukanCard">Rp {{ number_format($income) }}</p>
+                    <p id="totalPemasukanCard" class="sensitive">Rp {{ number_format($income) }}</p>
                 </div>
 
-                <!-- Icon Edit -->
-                <i class="bi bi-pencil-square" style="font-size: 1.3rem;"></i>
+                <div class="d-flex align-items-center gap-3">
+
+                    <!-- Edit -->
+                    <i class="bi bi-pencil-square"
+                    style="font-size: 1.3rem; cursor:pointer;"
+                    data-bs-toggle="modal"
+                    data-bs-target="#editIncomeModal"></i>
+
+                    <!-- Hide/Unhide -->
+                    <i class="bi bi-eye toggle-visibility"
+                    data-target="#totalPemasukanCard"
+                    style="font-size: 1.3rem; cursor:pointer;"></i>
+
+                </div>
             </div>
         </div>
 
+        <!-- ALOKASI -->
         <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card expense">
                 <h5>Alokasi</h5>
                 <p id="totalExpenseCard">Rp {{ number_format($expense ?? 0) }}</p>
             </div>
         </div>
+
+        <!-- REALISASI -->
         <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card realization">
                 <h5>Realisasi</h5>
                 <p id="totalRealizationCard">Rp {{ number_format($realization ?? 0) }}</p>
             </div>
         </div>
+
+        <!-- SALDO -->
         <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
-            <div class="summary-card balance">
-                <h5>Saldo</h5>
-                <p id="totalSaldoCard">Rp {{ number_format($balance ?? 0) }}</p>
+            <div class="summary-card balance d-flex align-items-center justify-content-between p-2">
+
+                <div>
+                    <h5>Saldo</h5>
+                    <p id="totalSaldoCard" class="sensitive">Rp {{ number_format($balance ?? 0) }}</p>
+                </div>
+
+                <!-- Hide/Unhide -->
+                <i class="bi bi-eye toggle-visibility"
+                data-target="#totalSaldoCard"
+                style="font-size: 1.3rem; cursor:pointer;"></i>
+
             </div>
         </div>
+
     </div>
 
     {{-- Grafik --}}

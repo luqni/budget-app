@@ -441,4 +441,36 @@
             loadChartData();
         }
     }
+
+    document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('toggle-visibility')) {
+        e.stopPropagation();
+
+        const selector = e.target.dataset.target;
+        const numberElement = document.querySelector(selector);
+
+        numberElement.classList.toggle('hidden');
+
+        if (numberElement.classList.contains('hidden')) {
+            e.target.classList.replace('bi-eye', 'bi-eye-slash');
+            localStorage.setItem(selector, 'hidden');
+        } else {
+            e.target.classList.replace('bi-eye-slash', 'bi-eye');
+            localStorage.removeItem(selector);
+        }
+    }
+});
+
+// restore hidden state on reload
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.sensitive').forEach(el => {
+        const selector = '#' + el.id;
+        if (localStorage.getItem(selector) === 'hidden') {
+            el.classList.add('hidden');
+            let icon = document.querySelector(`[data-target="${selector}"]`);
+            icon?.classList.replace('bi-eye', 'bi-eye-slash');
+        }
+    });
+});
+
 </script>
