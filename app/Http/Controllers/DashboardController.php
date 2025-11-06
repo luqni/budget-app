@@ -13,6 +13,12 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $filterMonth = $request->query('month');
+
+        if(!$filterMonth){
+            $filterMonth = \Carbon\Carbon::now()->format('Y-m');
+        }
+
+        
         $userId = Auth::id(); // ✅ Ambil ID user login
 
         $query = Expense::where('user_id', $userId) // ✅ Filter data berdasarkan user
@@ -91,14 +97,14 @@ class DashboardController extends Controller
     {
         $request->validate([
             'note' => 'required|string',
-            'amount' => 'required|numeric|min:1',
+            // 'amount' => 'required|numeric|min:1',
         ]);
 
         $expense = Expense::where('user_id', Auth::id())->findOrFail($id); // ✅ Cegah edit data user lain
 
         $expense->update([
             'note' => $request->note,
-            'amount' => $request->amount,
+            // 'amount' => $request->amount,
         ]);
 
         return response()->json($expense);
@@ -117,6 +123,8 @@ class DashboardController extends Controller
     {
         $driver = \DB::getDriverName();
 
+        $userId = Auth::id();
+
         if ($driver === 'sqlite') {
             // SQLite tidak perlu DATE_FORMAT, cukup ambil langsung kolom month
             $data = \App\Models\Expense::selectRaw('
@@ -124,6 +132,7 @@ class DashboardController extends Controller
                     SUM(amount) as total
                 ')
                 ->where('month', '>=', now()->subYear()->format('Y-m'))
+                ->where('user_id', $userId)
                 ->groupBy('month')
                 ->orderBy('month', 'asc')
                 ->get();
@@ -134,6 +143,7 @@ class DashboardController extends Controller
                     SUM(amount) as total
                 ')
                 ->where('month', '>=', now()->subYear()->format('Y-m'))
+                ->where('user_id', $userId)
                 ->groupBy('month')
                 ->orderBy('month', 'asc')
                 ->get();
@@ -175,5 +185,42 @@ class DashboardController extends Controller
         $totalUsers = \App\Models\User::count();
         
         return view('user', compact('totalUsers'));
+    }
+
+    public function getDataAlokasi(Request $request){
+        $userId = Auth::id();
+        $filterMonth = $request->query('month');
+
+        $expenseTotal = Expense::where('user_id', $userId)
+            ->when($filterMonth, fn($q)=>$q->where('month',$filterMonth))
+            ->sum('amount');
+
+
+        return response()->json($expenseTotal);
+
+    }
+
+    public function getDataRealisasi(Request $request){
+        $userId = Auth::id();
+        $filterMonth = $request->query('month');
+
+        // Total Realisasi
+        $realizationTotal = ExpenseDetail::when($filterMonth, function($q) use ($filterMonth) {
+                $q->whereHas('expense', fn($e)=>$e->where('month', $filterMonth));
+            })
+            ->whereHas('expense', fn($e)=>$e->where('user_id', Auth::id())) // ✅ Filter by user
+            ->where('is_checked', true)
+            ->selectRaw('SUM(qty * price) as total')
+            ->value('total') ?? 0;
+
+
+        return response()->json($realizationTotal);
+
+    }
+
+    public function getIncome(){
+        $income = Auth::user()->income ?? 0;
+
+        return response()->json($income);
     }
 }

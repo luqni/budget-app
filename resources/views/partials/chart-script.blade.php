@@ -56,6 +56,9 @@
     document.getElementById('noteForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
+        showLoader();
+
+
         const noteText = document.getElementById('noteText').value.trim();
         const month = document.getElementById('noteMonth').value; // <--- ambil bulan dari input
 
@@ -63,43 +66,51 @@
             alert('Lengkapi catatan dan bulan terlebih dahulu!');
             return;
         }
+        
+        try {
 
-        fetch('{{ route('expenses.store') }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                note: noteText,
-                month: month  // <--- kirim bulan ke server
+            fetch('{{ route('expenses.store') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    note: noteText,
+                    month: month  // <--- kirim bulan ke server
+                })
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center';
-            li.dataset.id = data.id;
-            li.innerHTML = `
-                <div class="text-section">
-                    <span class="note-text">${data.note}</span>
-                    <span class="fw-bold text-danger ms-2">Rp 0</span>
-                    <span class="note-date d-block">${data.month}</span>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
-                    <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
-                    <button class="btn btn-sm btn-outline-primary detail-btn">Detail</button>
-                </div>
-            `;
-            document.getElementById('notesList').prepend(li);
+            .then(res => res.json())
+            .then(data => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.dataset.id = data.id;
+                li.innerHTML = `
+                    <div class="text-section">
+                        <span class="note-text">${data.note}</span>
+                        <span class="fw-bold text-danger ms-2">Rp 0</span>
+                        <span class="note-date d-block">${data.month}</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
+                        <button class="btn btn-sm btn-outline-primary detail-btn">Detail</button>
+                    </div>
+                `;
+                document.getElementById('notesList').prepend(li);
 
-            // updateTotal(parseInt(data.amount));
-            document.getElementById('noteText').value = '';
-            loadChartData();
-            refreshTotal();
-        })
-        .catch(err => console.error(err));
+                // updateTotal(parseInt(data.amount));
+                document.getElementById('noteText').value = '';
+                loadChartData();
+                refreshTotal();
+            })
+            .catch(err => console.error(err));
+
+        } catch (error) {
+                console.error("Gagal save:", error);
+        } finally {
+            hideLoader();
+        }
     });
 
     // Edit dan Hapus
@@ -128,6 +139,9 @@
         }
 
         if (e.target.classList.contains('edit-btn')) {
+
+            showLoader();
+
             const noteTextEl = li.querySelector('.note-text');
             const oldNote = noteTextEl.innerText;
             const oldAmount = li.querySelector('.fw-bold').innerText.replace(/\D/g, '');
@@ -136,21 +150,29 @@
             if (!newNote) return;
             const newAmount = newNote.match(/\d+/)?.[0] ?? oldAmount;
 
-            fetch(`/expenses/${id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ _method: 'PUT', note: newNote, amount: newAmount })
-            })
-            .then(res => res.json())
-            .then(data => {
-                noteTextEl.innerText = data.note;
-                li.querySelector('.fw-bold').innerText = `Rp ${data.amount.toLocaleString()}`;
-                refreshTotal();
-                loadChartData();
-            });
+            try {
+
+                fetch(`/expenses/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ _method: 'PUT', note: newNote, amount: newAmount })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    noteTextEl.innerText = data.note;
+                    li.querySelector('.fw-bold').innerText = `Rp ${data.amount.toLocaleString()}`;
+                    refreshTotal();
+                    loadChartData();
+                });
+
+            } catch (error) {
+                console.error("Gagal update:", error);
+            } finally {
+                hideLoader();
+            }
         }
     });
 
@@ -211,20 +233,31 @@
 
     document.addEventListener('click', async function(e) {
         if (e.target.classList.contains('detail-btn')) {
-            const li = e.target.closest('li');
-            const noteId = li.dataset.id;
-            const noteText = li.querySelector('.note-text').innerText;
 
-            document.getElementById('parentNoteId').value = noteId;
-            document.getElementById('detailTitle').innerText = "Rincian: " + noteText;
+            showLoader();
 
-            // Load data detail via AJAX (controller menyusul)
-            const res = await fetch(`/notes/${noteId}/details`);
-            const data = await res.json();
+            try {
 
-            updateDetailTable(data);
+                const li = e.target.closest('li');
+                const noteId = li.dataset.id;
+                const noteText = li.querySelector('.note-text').innerText;
 
-            new bootstrap.Modal(document.getElementById('detailModal')).show();
+                document.getElementById('parentNoteId').value = noteId;
+                document.getElementById('detailTitle').innerText = "Rincian: " + noteText;
+
+                // Load data detail via AJAX (controller menyusul)
+                const res = await fetch(`/notes/${noteId}/details`);
+                const data = await res.json();
+
+                updateDetailTable(data);
+
+                new bootstrap.Modal(document.getElementById('detailModal')).show();
+
+            } catch (error) {
+                console.error("Gagal open:", error);
+            } finally {
+                hideLoader();
+            }
         }
     });
 
@@ -252,6 +285,8 @@
     document.getElementById('detailForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
+        showLoader();
+
         const payload = {
             note_id: document.getElementById('parentNoteId').value,
             name: document.getElementById('detailName').value,
@@ -259,74 +294,103 @@
             price: document.getElementById('detailPrice').value,
         };
 
-        const res = await fetch('/details', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(payload)
-        });
+        try {
 
-        const data = await res.json();
-        updateDetailTable(data.details); // response harus mengembalikan detail list terbaru
-        
-        refreshTotal();
-        loadChartData();
-        updateTotal(parseInt(payload.price));
-        updateParentAmount(payload.note_id, data.total);
-        this.reset();
+            const res = await fetch('/details', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            updateDetailTable(data.details); // response harus mengembalikan detail list terbaru
+            
+            refreshTotal();
+            loadChartData();
+            updateTotal(parseInt(payload.price));
+            updateParentAmount(payload.note_id, data.total);
+            refreshCardSummary();
+            this.reset();
+
+        } catch (error) {
+                console.error("Gagal save:", error);
+        } finally {
+            hideLoader();
+        }
     });
 
     document.addEventListener('click', async function(e) {
         if (e.target.classList.contains('delete-detail-btn')) {
+
+            showLoader();
+
             const tr = e.target.closest('tr');
             const id = tr.dataset.id;
             const price = tr.dataset.price;
 
             if(!confirm("Hapus item ini?")) return;
 
-            const res = await fetch(`/details/${id}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            });
+            try {
+                const res = await fetch(`/details/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
 
-            const data = await res.json();
-            updateDetailTable(data.details);
-            refreshTotal();
-            loadChartData();
-            updateTotal(-parseInt(price));
-            updateParentAmount(document.getElementById('parentNoteId').value, data.total);
+                const data = await res.json();
+                updateDetailTable(data.details);
+                refreshTotal();
+                loadChartData();
+                updateTotal(-parseInt(price));
+                updateParentAmount(document.getElementById('parentNoteId').value, data.total);
+                refreshCardSummary();
+
+            } catch (error) {
+                console.error("Gagal delete:", error);
+            } finally {
+                hideLoader();
+            }
         }
     });
 
     document.addEventListener('change', async function(e) {
         if (e.target.classList.contains('detail-check')) {
 
+            showLoader();
+
             const tr = e.target.closest('tr');
             const detailId = tr.dataset.id;
-            const price = parseInt(tr.dataset.price);
             const noteId = document.getElementById('parentNoteId').value;
             const isChecked = e.target.checked ? 1 : 0;
 
-            const res = await fetch(`/details/${detailId}/check`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ is_checked: isChecked })
-            });
+            try {
+                const res = await fetch(`/details/${detailId}/check`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ is_checked: isChecked })
+                });
 
-            const data = await res.json();
+                const data = await res.json();
 
-            const li = document.querySelector(`li[data-id="${noteId}"]`);
-            li.querySelector('.realization-amount').textContent = `Rp ${parseInt(data.total).toLocaleString()}`;
+                const li = document.querySelector(`li[data-id="${noteId}"]`);
+                li.querySelector('.realization-amount').textContent = `Rp ${parseInt(data.total).toLocaleString()}`;
 
-            refreshTotal();
-            loadChartData();
+                refreshTotal();
+                loadChartData();
+                refreshCardSummary();
+
+            } catch (error) {
+                console.error("Gagal update:", error);
+            } finally {
+                hideLoader();
+            }
         }
     });
 
@@ -350,4 +414,31 @@
             }
         });
     });
+
+    async function refreshCardSummary() {
+        const month = document.getElementById('monthSelect').value; // ambil bulan dipilih
+        
+        // Ambil total alokasi
+        const alokasiRes = await fetch(`/summary/alokasi?month=${month}`);
+        const alokasiTotal = await alokasiRes.json();
+
+        // Ambil total realisasi
+        const realisasiRes = await fetch(`/summary/realisasi?month=${month}`);
+        const realisasiTotal = await realisasiRes.json();
+
+        const incomeRes = await fetch(`/summary/income?month=${month}`);
+        const incomeTotal = await incomeRes.json();
+
+        let saldo = incomeTotal - realisasiTotal;
+
+        // Update card di halaman
+        document.querySelector('#totalExpenseCard').textContent = `Rp ${parseInt(alokasiTotal).toLocaleString()}`;
+        document.querySelector('#totalRealizationCard').textContent = `Rp ${parseInt(realisasiTotal).toLocaleString()}`;
+        document.querySelector('#totalSaldoCard').textContent = `Rp ${parseInt(saldo).toLocaleString()}`;
+
+        // Jika ada grafik, panggil reload grafik juga
+        if (typeof loadChartData === 'function') {
+            loadChartData();
+        }
+    }
 </script>

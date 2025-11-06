@@ -193,19 +193,19 @@
         <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card expense">
                 <h5>Alokasi</h5>
-                <p id="totalExpenseCard">Rp {{ number_format($expense ?? 2500000) }}</p>
+                <p id="totalExpenseCard">Rp {{ number_format($expense ?? 0) }}</p>
             </div>
         </div>
         <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card realization">
                 <h5>Realisasi</h5>
-                <p id="totalRealizationCard">Rp {{ number_format($realization ?? 2500000) }}</p>
+                <p id="totalRealizationCard">Rp {{ number_format($realization ?? 0) }}</p>
             </div>
         </div>
         <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
             <div class="summary-card balance">
                 <h5>Saldo</h5>
-                <p id="totalSaldoCard">Rp {{ number_format(($income ?? 5000000) - ($expense ?? 2500000)) }}</p>
+                <p id="totalSaldoCard">Rp {{ number_format($balance ?? 0) }}</p>
             </div>
         </div>
     </div>

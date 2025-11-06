@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Akun - Rumah Keuangan Keluarga</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background: #FFF5EA;
@@ -50,6 +51,12 @@
         <p class="text-center small text-muted mb-4">
             Catat keuangan penuh cinta, biar keluarga makin bahagia 💗
         </p>
+
+        @if ($errors->any())
+            <div class="mb-4 text-center text-sm text-red-600 bg-red-100 border border-red-300 px-3 py-2 rounded-lg">
+                {{ $errors->first() }}
+            </div>
+        @endif
 
         <form method="POST" action="{{ route('register') }}">
             @csrf

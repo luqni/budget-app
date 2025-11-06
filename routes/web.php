@@ -22,11 +22,18 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/notes/{id}/details', [ExpenseDetailController::class, 'index']);
     Route::post('/details', [ExpenseDetailController::class, 'store']);
-    Route::delete('/details/{id}', [ExpenseDetailController::class, 'destroy']);
+    Route::post('/details/{id}', [ExpenseDetailController::class, 'destroy']);
     Route::post('/details/{id}/check', [ExpenseDetailController::class, 'check']);
 
     Route::post('/income', [DashboardController::class, 'storeIncome'])->name('income.store');
     Route::put('/income', [DashboardController::class, 'updateIncome'])->name('income.update');
+
+
+    Route::get('/summary/alokasi', [DashboardController::class, 'getDataAlokasi'])->name('summary.alokasi');
+    Route::get('/summary/realisasi', [DashboardController::class, 'getDataRealisasi'])->name('summary.realisasi');
+    Route::get('/summary/income', [DashboardController::class, 'getIncome'])->name('summary.income');
+
+
 
 
 });

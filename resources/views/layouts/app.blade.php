@@ -34,6 +34,12 @@
     </style>
 </head>
 <body>
+    <div id="ajaxLoader" 
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+        background:rgba(255,255,255,0.6); backdrop-filter:blur(2px);
+        z-index:9999; align-items:center; justify-content:center;">
+        <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
+    </div>
     <div class="container py-3">
         <nav class="navbar navbar-light bg-white border-bottom px-3 py-2 d-flex justify-content-between sticky-top shadow-sm mb-3">
             <a href="{{ route('dashboard') }}" class="navbar-brand fw-semibold">Dashboard</a>
@@ -60,4 +66,13 @@
         dibuat dengan ❤️ oleh <strong>Muhammad Luqni Baehaqi</strong>
     </footer>
 </body>
+<script>
+function showLoader() {
+    document.getElementById('ajaxLoader').style.display = 'flex';
+}
+
+function hideLoader() {
+    document.getElementById('ajaxLoader').style.display = 'none';
+}
+</script>
 </html>
