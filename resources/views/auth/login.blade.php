@@ -21,6 +21,12 @@
             </div>
         </div>
 
+        @if ($errors->any())
+            <div class="mb-4 text-center text-sm text-red-600 bg-red-100 border border-red-300 px-3 py-2 rounded-lg">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('login') }}">
             @csrf
 
@@ -28,14 +34,16 @@
             <label class="block mb-3">
                 <span class="text-[#6B4226] font-medium">Email</span>
                 <input type="email" name="email" required autofocus 
-                    class="mt-1 block w-full rounded-lg border-[#e4c9a8] bg-[#FFF9F3] focus:ring-[#d39e63] focus:border-[#d39e63]">
+                    class="mt-1 block w-full rounded-xl border-[#e4c9a8] bg-[#FFF9F3] focus:ring-[#d39e63] focus:border-[#d39e63] 
+               text-base px-4 py-3">
             </label>
 
             <!-- Password -->
             <label class="block mb-3">
                 <span class="text-[#6B4226] font-medium">Password</span>
                 <input type="password" name="password" required
-                    class="mt-1 block w-full rounded-lg border-[#e4c9a8] bg-[#FFF9F3] focus:ring-[#d39e63] focus:border-[#d39e63]">
+                    class="mt-1 block w-full rounded-xl border-[#e4c9a8] bg-[#FFF9F3] focus:ring-[#d39e63] focus:border-[#d39e63] 
+               text-base px-4 py-3">
             </label>
 
             <!-- Remember -->

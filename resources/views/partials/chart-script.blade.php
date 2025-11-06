@@ -287,7 +287,7 @@
             if(!confirm("Hapus item ini?")) return;
 
             const res = await fetch(`/details/${id}`, {
-                method: 'DELETE',
+                method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 }

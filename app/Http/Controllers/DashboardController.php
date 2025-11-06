@@ -170,4 +170,10 @@ class DashboardController extends Controller
         auth()->user()->update(['income' => $request->income]);
         return redirect()->route('dashboard')->with('success', 'Pemasukan berhasil diperbarui.');
     }
+
+    public function countUsers(){
+        $totalUsers = \App\Models\User::count();
+        
+        return view('user', compact('totalUsers'));
+    }
 }

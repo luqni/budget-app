@@ -52,7 +52,12 @@
         </nav>
 
         <h3 class="text-center mb-4">{{ $title ?? 'Catatan Keuangan Keluargaku' }}</h3>
-         @yield('content')
+        @yield('content')
     </div>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-2 bg-white border-top shadow-sm fixed-bottom small">
+        dibuat dengan ❤️ oleh <strong>Muhammad Luqni Baehaqi</strong>
+    </footer>
 </body>
 </html>
