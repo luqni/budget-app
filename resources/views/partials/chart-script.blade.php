@@ -473,4 +473,55 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+document.addEventListener("DOMContentLoaded", function () {
+    const chatIcon = document.getElementById("chatIcon");
+    const chatBox = document.getElementById("chatBoxContainer");
+    const closeChat = document.getElementById("closeChat");
+    const chatContent = document.getElementById("chatContent");
+    const summaryButton = document.getElementById("summaryButton");
+
+    chatIcon.addEventListener("click", () => {
+        chatBox.style.display = "block";
+        chatIcon.style.display = "none";
+    });
+
+    closeChat.addEventListener("click", () => {
+        chatBox.style.display = "none";
+        chatIcon.style.display = "block";
+    });
+
+    function addMessage(text, sender = "bot") {
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("my-2", sender === "user" ? "text-end" : "text-start");
+        msgDiv.innerHTML = `
+            <span class="d-inline-block p-2 rounded-3 ${sender === "user" ? "bg-primary text-white" : "bg-light"}"
+                style="max-width: 80%; word-wrap: break-word;">
+                ${text}
+            </span>
+        `;
+        chatContent.appendChild(msgDiv);
+        chatContent.scrollTop = chatContent.scrollHeight;
+    }
+
+    summaryButton.addEventListener("click", async () => {
+        addMessage("💰 Ringkasan Keuangan Bulan Ini", "user");
+        addMessage("⏳ Sedang mengambil data ringkasan...");
+
+        try {
+            const userId = "{{ auth()->id() }}";
+            const res = await fetch(`/api/ai/finance/context/${userId}`);
+            const data = await res.json();
+            chatContent.lastChild.remove(); // hapus "sedang mengambil..."
+
+            if (data.error) {
+                addMessage("⚠️ " + data.error);
+            } else {
+                addMessage(data.context, "bot");
+            }
+        } catch (err) {
+            addMessage("❌ Gagal mengambil data dari server.", "bot");
+        }
+    });
+});
+
 </script>

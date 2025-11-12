@@ -176,6 +176,59 @@
         transition: 0.2s;
     }
 
+    /* Warna tombol */
+    #chatIcon button {
+        background: linear-gradient(135deg, #007bff, #00b4d8);
+        color: white;
+        border: none;
+        font-size: 24px;
+    }
+
+    #chatBoxContainer {
+        animation: fadeInUp 0.3s ease;
+        max-height: 80vh;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* 🌐 RESPONSIVE MOBILE */
+    @media (max-width: 768px) {
+        #chatBoxContainer {
+            width: 90%;
+            right: 5%;
+            left: 5%;
+            bottom: 80px;
+            margin: 0;
+            max-height: 75vh;
+            border-radius: 1rem;
+        }
+
+        #chatContent {
+            height: 55vh !important;
+        }
+
+        #chatIcon {
+            bottom: 20px !important;
+            right: 20px !important;
+        }
+
+        #chatIcon button {
+            width: 55px;
+            height: 55px;
+            font-size: 22px;
+        }
+    }
+
 
 </style>
 
@@ -428,6 +481,33 @@
         </div>
     </div>
 
+    <!-- Floating Chat Icon -->
+    <div id="chatIcon" class="position-fixed bottom-0 end-0 m-4" style="margin-bottom:3.5rem !important;">
+        <button class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+            style="width: 60px; height: 60px; font-size: 24px;">
+            💬
+        </button>
+    </div>
+
+    <!-- Chatbox -->
+    <div id="chatBoxContainer"
+        class="position-fixed bottom-0 end-0 m-4 shadow-lg rounded-4 bg-white border"
+        style="width: 350px; display: none; z-index: 1050; margin-bottom: 2.5rem;">
+        <div class="d-flex justify-content-between align-items-center p-2 border-bottom bg-primary text-white rounded-top-4">
+            <strong>Asisten Keuangan AI</strong>
+            <button id="closeChat" class="btn btn-sm btn-light">✕</button>
+        </div>
+
+        <div id="chatContent" class="p-3" style="height: 300px; overflow-y: auto; font-size: 14px;">
+            <div class="text-muted small text-center">Klik tombol di bawah untuk ringkasan keuanganmu 📊</div>
+        </div>
+
+        <div class="p-3 border-top bg-light text-center rounded-bottom-4">
+            <button id="summaryButton" class="btn btn-success w-100 fw-bold">
+                💰 Ringkasan Keuangan Bulan Ini
+            </button>
+        </div>
+    </div>
 
 
 </div>
