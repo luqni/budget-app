@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Expense;
 use App\Models\ExpenseDetail;
+use App\Models\MonthlyIncome;
+
 use DB;
 use Auth;
 
@@ -12,16 +14,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $filterMonth = $request->query('month');
+        $filterMonth = $request->query('month') ?? now()->format('Y-m');
+        $userId = Auth::id();
 
-        if(!$filterMonth){
-            $filterMonth = \Carbon\Carbon::now()->format('Y-m');
-        }
-
-        
-        $userId = Auth::id(); // ✅ Ambil ID user login
-
-        $query = Expense::where('user_id', $userId) // ✅ Filter data berdasarkan user
+        // Query expense
+        $query = Expense::where('user_id', $userId)
             ->withSum([
                 'details as total_realisasi' => function ($q) {
                     $q->where('is_checked', true);
@@ -35,19 +32,21 @@ class DashboardController extends Controller
 
         $expenses = $query->get()->groupBy('month');
 
-        // Total Income
-        $income = Auth::user()->income ?? 0;
+        // === NEW: Income dibaca per bulan ===
+        $income = MonthlyIncome::where('user_id', $userId)
+            ->where('month', $filterMonth)
+            ->value('income') ?? 0;
 
-        // Total Alokasi
+        // Total alokasi
         $expenseTotal = Expense::where('user_id', $userId)
-            ->when($filterMonth, fn($q)=>$q->where('month',$filterMonth))
+            ->when($filterMonth, fn($q) => $q->where('month', $filterMonth))
             ->sum('amount');
 
-        // Total Realisasi
-        $realizationTotal = ExpenseDetail::when($filterMonth, function($q) use ($filterMonth) {
-                $q->whereHas('expense', fn($e)=>$e->where('month', $filterMonth));
+        // Total realisasi
+        $realizationTotal = ExpenseDetail::when($filterMonth, function ($q) use ($filterMonth) {
+                $q->whereHas('expense', fn($e) => $e->where('month', $filterMonth));
             })
-            ->whereHas('expense', fn($e)=>$e->where('user_id', Auth::id())) // ✅ Filter by user
+            ->whereHas('expense', fn($e) => $e->where('user_id', Auth::id()))
             ->where('is_checked', true)
             ->selectRaw('SUM(qty * price) as total')
             ->value('total') ?? 0;
@@ -170,14 +169,30 @@ class DashboardController extends Controller
     public function storeIncome(Request $request)
     {
         $request->validate(['income' => 'required|integer']);
-        auth()->user()->update(['income' => $request->income]);
+        MonthlyIncome::updateOrCreate(
+            [
+                'user_id' => Auth::id(),
+                'month' => $request->monthIncome
+            ],
+            [
+                'income' => $request->income
+            ]
+        );
         return redirect()->route('dashboard')->with('success', 'Pemasukan awal berhasil disimpan.');
     }
 
     public function updateIncome(Request $request)
     {
         $request->validate(['income' => 'required|integer']);
-        auth()->user()->update(['income' => $request->income]);
+        MonthlyIncome::updateOrCreate(
+            [
+                'user_id' => Auth::id(),
+                'month' => $request->monthIncome
+            ],
+            [
+                'income' => $request->income
+            ]
+        );
         return redirect()->route('dashboard')->with('success', 'Pemasukan berhasil diperbarui.');
     }
 

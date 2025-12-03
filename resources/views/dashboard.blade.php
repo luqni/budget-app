@@ -453,7 +453,29 @@
                 <h4 class="mb-3">Masukkan Pemasukan Awal</h4>
                 <form action="{{ route('income.store') }}" method="POST">
                     @csrf
-                    <input type="number" name="income" class="form-control" required placeholder="Misal: 5000000">
+                    <div class="mb-3">
+                        <label for="monthSelect" class="form-label fw-semibold">Pilih Bulan</label>
+                        <select id="monthSelect" class="form-select shadow-sm" name="monthIncome">
+                            <option value="" disabled> --Pilih Bulan-- </option>
+                            @foreach ($months as $month)
+                                <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="incomeInput" class="form-label fw-semibold">Total Pemasukan</label>
+                        <input 
+                            type="number" 
+                            name="income" 
+                            id="incomeInput"
+                            class="form-control shadow-sm" 
+                            value="{{ $income }}" 
+                            required
+                        >
+                    </div>
                     <button class="btn btn-primary mt-3 w-100">Simpan</button>
                 </form>
             </div>
@@ -471,11 +493,35 @@
                     data-bs-dismiss="modal" aria-label="Close"></button>
 
                 <h4 class="mb-3">Edit Pemasukan</h4>
-                <form action="{{ route('income.update') }}" method="POST">
+                <form action="{{ route('income.update') }}" method="POST" class="p-3">
                     @csrf
                     @method('PUT')
-                    <input type="number" name="income" class="form-control" value="{{ $income }}" required>
-                    <button class="btn btn-success mt-3 w-100">Update</button>
+
+                    <div class="mb-3">
+                        <label for="monthSelect" class="form-label fw-semibold">Pilih Bulan</label>
+                        <select id="monthSelect" class="form-select shadow-sm" name="monthIncome">
+                            <option value="" disabled> --Pilih Bulan-- </option>
+                            @foreach ($months as $month)
+                                <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="incomeInput" class="form-label fw-semibold">Total Pemasukan</label>
+                        <input 
+                            type="number" 
+                            name="income" 
+                            id="incomeInput"
+                            class="form-control shadow-sm" 
+                            value="{{ $income }}" 
+                            required
+                        >
+                    </div>
+
+                    <button class="btn btn-success w-100">Update</button>
                 </form>
             </div>
         </div>
