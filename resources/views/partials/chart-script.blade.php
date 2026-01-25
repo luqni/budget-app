@@ -1,527 +1,508 @@
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let ctx = document.getElementById('expenseChart').getContext('2d');
-    let expenseChart;
+    document.addEventListener("DOMContentLoaded", function () {
+        
+        // --- CHART & STATS LOGIC ---
+        
+        const monthFilterInput = document.getElementById('statsMonthFilter');
+        let currentMonth = monthFilterInput ? monthFilterInput.value : new Date().toISOString().slice(0, 7);
 
-    function loadChartData() {
-        fetch('{{ route('chart.data') }}')
-            .then(res => res.json())
-            .then(data => {
-                const labels = data.map(d => d.month);
-                const values = data.map(d => d.total);
+        // Chart Instances
+        let ctxElement = document.getElementById('expenseChart');
+        let ctxCatElement = document.getElementById('categoryChart');
+        
+        window.expenseChart = null; 
+        window.categoryChart = null;
 
-                if (expenseChart) expenseChart.destroy();
+        // Initial Load
+        if(ctxElement) loadChartData(ctxElement.getContext('2d'), currentMonth);
+        if(ctxCatElement) loadCategoryChart(ctxCatElement.getContext('2d'), currentMonth);
 
-                expenseChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Total Pengeluaran per Bulan (Rp)',
-                            data: values,
-                            borderWidth: 2,
-                            borderColor: '#f87171',
-                            backgroundColor: 'rgba(248,113,113,0.3)',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: true },
-                            title: {
-                                display: true,
-                                text: 'Pengeluaran Bulanan (12 Bulan Terakhir)',
-                                font: { size: 16 }
-                            }
+        // Listener: Month Filter Change
+        if (monthFilterInput) {
+            monthFilterInput.addEventListener('change', function(e) {
+                currentMonth = e.target.value;
+                if(ctxElement) loadChartData(ctxElement.getContext('2d'), currentMonth);
+                if(ctxCatElement) loadCategoryChart(ctxCatElement.getContext('2d'), currentMonth);
+            });
+        }
+
+        // 1. Bar Chart (Category Breakdown)
+        function loadChartData(context, month) {
+            if(!context) return;
+            console.log('Loading chart data for:', month);
+            
+            // Use URL param for filtering
+            fetch(`{{ route('chart.category.data') }}?month=${month}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('Chart data received:', data);
+                    
+                    const labels = data.map(d => d.name); // Check if icon needed? d.icon + ' ' + d.name
+                    const values = data.map(d => d.total);
+                    const colors = data.map(d => d.color);
+
+                    if (window.expenseChart) {
+                        window.expenseChart.destroy();
+                    }
+                
+                    window.expenseChart = new Chart(context, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Total (Rp)',
+                                data: values,
+                                borderWidth: 0,
+                                borderRadius: 4,
+                                backgroundColor: colors, // Use category colors
+                                barThickness: 20
+                            }]
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: value => 'Rp ' + value.toLocaleString()
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { borderDash: [2, 2] },
+                                    ticks: { font: { size: 9 }, callback: val => (val/1000) + 'k' }
+                                },
+                                x: { 
+                                    grid: { display: false }, 
+                                    ticks: { 
+                                        font: { size: 10 },
+                                        autoSkip: false,
+                                        maxRotation: 45,
+                                        minRotation: 45
+                                    } 
                                 }
                             }
                         }
-                    }
-                });
-            });
-    }
-
-    loadChartData();
-
-    const noteForm = document.getElementById('noteForm');
-    const notesList = document.getElementById('notesList');
-
-    // Tambah data baru
-    document.getElementById('noteForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        showLoader();
-
-
-        const noteText = document.getElementById('noteText').value.trim();
-        const month = document.getElementById('noteMonth').value; // <--- ambil bulan dari input
-
-        if (!month || !noteText) {
-            alert('Lengkapi catatan dan bulan terlebih dahulu!');
-            return;
-        }
-        
-        try {
-
-            fetch('{{ route('expenses.store') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    note: noteText,
-                    month: month  // <--- kirim bulan ke server
+                    });
+                    
+                    console.log('Chart initialized:', window.expenseChart);
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.dataset.id = data.id;
-                li.innerHTML = `
-                    <div class="text-section">
-                        <span class="note-text">${data.note}</span>
-                        <span class="fw-bold text-danger ms-2">Rp 0</span>
-                        <span class="note-date d-block">${data.month}</span>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
-                        <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
-                        <button class="btn btn-sm btn-outline-primary detail-btn">Detail</button>
-                    </div>
-                `;
-                document.getElementById('notesList').prepend(li);
-
-                // updateTotal(parseInt(data.amount));
-                document.getElementById('noteText').value = '';
-                loadChartData();
-                refreshTotal();
-            })
-            .catch(err => console.error(err));
-
-        } catch (error) {
-                console.error("Gagal save:", error);
-        } finally {
-            hideLoader();
+                .catch(error => console.error('Error loading chart:', error));
         }
-    });
+        console.log(expenseChart);
+        // 2. Category Doughnut & List Breakdown
+        function loadCategoryChart(context, month) {
+            if(!context) return;
+            fetch(`{{ route('chart.category.data') }}?month=${month}`)
+                .then(res => res.json())
+                .then(data => {
+                    renderCategoryList(data); // Update the list below chart
 
-    // Edit dan Hapus
-    notesList.addEventListener('click', function(e) {
-        const li = e.target.closest('li');
-        const id = li?.dataset.id;
+                    const labels = data.map(d => d.name);
+                    const values = data.map(d => d.total);
+                    const backgroundColors = [
+                        '#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', 
+                        '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'
+                    ];
 
-        if (e.target.classList.contains('delete-btn')) {
-            if (confirm('Yakin ingin menghapus catatan ini?')) {
-                fetch(`/expenses/${id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ _method: 'DELETE' }) // spoofing
-                }).then(() => {
-                    const amount = parseInt(
-                        li.querySelector('.text-section span.fw-bold').innerText.replace(/\D/g, '')
-                    );
-                    li.remove();
-                    updateTotal(-amount);
-                    loadChartData();
+                    if (window.categoryChart) window.categoryChart.destroy();
+
+                    window.categoryChart = new Chart(context, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: values,
+                                backgroundColor: backgroundColors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff',
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                            },
+                            layout: { padding: 5 }
+                        }
+                    });
+                });
+        }
+
+        // Helper: Render Category List
+        function renderCategoryList(data) {
+            const listContainer = document.getElementById('categoryList');
+            if (!listContainer) return;
+            
+            listContainer.innerHTML = ''; // Clear current
+
+            if (data.length === 0) {
+                listContainer.innerHTML = '<li class="list-group-item text-center text-muted py-3 small">Belum ada pengeluaran bulan ini.</li>';
+                return;
+            }
+
+            data.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center px-3 py-2 border-0 border-bottom';
+                li.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <span class="me-3 fs-5">${item.icon}</span>
+                        <div>
+                            <div class="fw-semibold text-dark" style="font-size: 0.9rem;">${item.name}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">${item.percentage}%</div>
+                        </div>
+                    </div>
+                    <span class="fw-bold text-dark" style="font-size: 0.9rem;">Rp ${new Intl.NumberFormat('id-ID').format(item.total)}</span>
+                `;
+                listContainer.appendChild(li);
+            });
+        }
+
+        // --- BUDGET REMINDER (Simple Local Notification) ---
+        checkBudgetReminder();
+
+        function checkBudgetReminder() {
+            // Check if Notification is supported
+            if (!("Notification" in window)) return;
+
+            // Logic: If date is 1-5, remind user
+            const date = new Date().getDate();
+            const lastReminded = localStorage.getItem('last_budget_reminder');
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (date <= 5 && lastReminded !== todayStr) {
+                // Request permission
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification("Waktunya Budgeting! 📝", {
+                            body: "Jangan lupa catat pemasukan dan rencana pengeluaran bulan ini di Qanaah.",
+                            icon: "https://cdn-icons-png.flaticon.com/512/2344/2344132.png" // App icon
+                        });
+                        localStorage.setItem('last_budget_reminder', todayStr);
+                    }
                 });
             }
         }
 
-        if (e.target.classList.contains('edit-btn')) {
+        // --- ADD EXPENSE LOGIC ---
+        const noteForm = document.getElementById('noteForm');
+        
+        if(noteForm) {
+            noteForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                showLoader();
 
-            showLoader();
+                // Get values
+                const noteTextEl = document.getElementById('noteText');
+                const amountEl = document.getElementById('amountInput'); // New ID
+                const categoryEl = document.getElementById('noteCategory');
+                const monthEl = document.getElementById('noteMonth');
 
-            const noteTextEl = li.querySelector('.note-text');
-            const oldNote = noteTextEl.innerText;
-            const oldAmount = li.querySelector('.fw-bold').innerText.replace(/\D/g, '');
+                // Basic validation
+                if (!noteTextEl.value || !categoryEl.value || !amountEl.value) {
+                    alert('Mohon lengkapi catatan, jumlah, dan kategori!');
+                    hideLoader();
+                    return;
+                }
+                
+                // Parse amount (remove non-digits if user typed formatting)
+                // Assuming simple input for now, but better to sanitize
+                // The new UI has separate amount input.
+                const noteText = noteTextEl.value;
+                const rawAmount = amountEl.value.replace(/\D/g, ''); 
+                // We combine amount + note text into one strings for legacy controller or
+                // ideally we update controller to accept amount separately.
+                // CURRENT CONTROLLER: expects "50000 beli nasi" format in 'note' OR
+                // if we updated backend? We haven't. Controller parses numbers from 'note'.
+                // So we arguably should append amount to note text if backend expects it.
+                // Let's check Controller logic... Controller uses `preg_match_all('!\d+!', $request->note, $matches)`
+                // So we MUST include the number in the note string sent to server.
+                
+                const finalNote = rawAmount + ' ' + noteText;
 
-            const newNote = prompt('Ubah catatan:', oldNote);
-            if (!newNote) return;
-            const newAmount = newNote.match(/\d+/)?.[0] ?? oldAmount;
-
-            try {
-
-                fetch(`/expenses/${id}`, {
+                fetch('{{ route('expenses.store') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({ _method: 'PUT', note: newNote, amount: newAmount })
+                    body: JSON.stringify({
+                        note: finalNote,
+                        month: monthEl.value,
+                        category_id: categoryEl.value
+                    })
                 })
                 .then(res => res.json())
                 .then(data => {
-                    noteTextEl.innerText = data.note;
-                    li.querySelector('.fw-bold').innerText = `Rp ${data.amount.toLocaleString()}`;
-                    refreshTotal();
-                    loadChartData();
-                });
-
-            } catch (error) {
-                console.error("Gagal update:", error);
-            } finally {
-                hideLoader();
-            }
-        }
-    });
-
-    // Update total otomatis
-    function updateTotal(change) {
-        const totalEl = document.getElementById('totalExpense');
-        let total = parseInt(totalEl.innerText.replace(/\D/g, ''));
-        total += change;
-        totalEl.innerText = total.toLocaleString();
-
-    }
-
-    function refreshTotal() {
-        let sum = 0;
-        document.querySelectorAll('#notesList .fw-bold').forEach(el => {
-            sum += parseInt(el.innerText.replace(/\D/g, ''));
-        });
-        document.getElementById('totalExpense').innerText = sum.toLocaleString();
-        
-        const totalElCard = document.getElementById('totalExpenseCard');
-        totalElCard.innerText = sum.toLocaleString();
-
-        // Ambil nilai total pemasukan (dari card)
-        const totalPemasukan = document.getElementById('totalPemasukanCard');
-        let totalPem = parseInt(totalPemasukan.innerText.replace(/\D/g, ''));
-
-        // Hitung saldo = pemasukan - pengeluaran
-        const saldo = totalPem - sum;
-
-        // Update kartu saldo
-        const totalSaldo = document.getElementById('totalSaldoCard');
-        totalSaldo.innerText = saldo.toLocaleString();
-    }
-
-
-    document.getElementById('monthSelect').addEventListener('change', function() {
-        const selectedMonth = this.value;
-        const url = new URL(window.location.href);
-        
-        if (selectedMonth) {
-            url.searchParams.set('month', selectedMonth);
-        } else {
-            url.searchParams.delete('month');
-        }
-
-        window.location.href = url.toString(); // Reload halaman dengan parameter baru
-
-    });
-
-    // document.getElementById('noteText').addEventListener('blur', function (e) {
-    //     let value = e.target.value;
-
-    //     // Ganti semua deretan angka menjadi format dengan pemisah ribuan
-    //     e.target.value = value.replace(/\d+/g, match => {
-    //         return new Intl.NumberFormat('id-ID').format(Number(match));
-    //     });
-    // });
-
-    document.addEventListener('click', async function(e) {
-        if (e.target.classList.contains('detail-btn')) {
-
-            showLoader();
-
-            try {
-
-                const li = e.target.closest('li');
-                const noteId = li.dataset.id;
-                const noteText = li.querySelector('.note-text').innerText;
-
-                document.getElementById('parentNoteId').value = noteId;
-                document.getElementById('detailTitle').innerText = "Rincian: " + noteText;
-
-                // Load data detail via AJAX (controller menyusul)
-                const res = await fetch(`/notes/${noteId}/details`);
-                const data = await res.json();
-
-                updateDetailTable(data);
-
-                new bootstrap.Modal(document.getElementById('detailModal')).show();
-
-            } catch (error) {
-                console.error("Gagal open:", error);
-            } finally {
-                hideLoader();
-            }
-        }
-    });
-
-    function updateDetailTable(details) {
-        const tbody = document.querySelector('#detailTable tbody');
-        tbody.innerHTML = "";
-
-        details.forEach(det => {
-            tbody.insertAdjacentHTML('beforeend', `
-                <tr data-id="${det.id}" data-price="${det.price}">
-                    <td>
-                        <input type="checkbox" class="form-check-input detail-check" ${det.is_checked ? 'checked' : ''}>
-                    </td>
-                    <td>${det.name}</td>
-                    <td>${det.qty}</td>
-                    <td>${parseInt(det.price).toLocaleString()}</td>
-                    <td>
-                        <button class="btn btn-sm btn-danger delete-detail-btn">Hapus</button>
-                    </td>
-                </tr>
-            `);
-        });
-    }
-
-    document.getElementById('detailForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        showLoader();
-
-        const payload = {
-            note_id: document.getElementById('parentNoteId').value,
-            name: document.getElementById('detailName').value,
-            qty: document.getElementById('detailQty').value,
-            price: document.getElementById('detailPrice').value,
-        };
-
-        try {
-
-            const res = await fetch('/details', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-            updateDetailTable(data.details); // response harus mengembalikan detail list terbaru
-            
-            refreshTotal();
-            loadChartData();
-            updateTotal(parseInt(payload.price));
-            updateParentAmount(payload.note_id, data.total);
-            refreshCardSummary();
-            this.reset();
-
-        } catch (error) {
-                console.error("Gagal save:", error);
-        } finally {
-            hideLoader();
-        }
-    });
-
-    document.addEventListener('click', async function(e) {
-        if (e.target.classList.contains('delete-detail-btn')) {
-
-            showLoader();
-
-            const tr = e.target.closest('tr');
-            const id = tr.dataset.id;
-            const price = tr.dataset.price;
-
-            if(!confirm("Hapus item ini?")) return;
-
-            try {
-                const res = await fetch(`/details/${id}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    // Update Lists
+                    prependNoteToList(data);
+                    
+                    // Reset Form
+                    noteTextEl.value = '';
+                    amountEl.value = '';
+                    // categoryEl.value = ''; // Keep category for convenience? Or reset. Resetting.
+                    categoryEl.value = '';
+                    
+                    // Close Modal
+                    const modalEl = document.getElementById('addExpenseModal');
+                    if(modalEl) {
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if(modal) modal.hide();
                     }
-                });
 
-                const data = await res.json();
-                updateDetailTable(data.details);
-                refreshTotal();
-                loadChartData();
-                updateTotal(-parseInt(price));
-                updateParentAmount(document.getElementById('parentNoteId').value, data.total);
-                refreshCardSummary();
+                    // Refresh Views
+                    if(ctxElement) loadChartData(ctxElement.getContext('2d'));
+                    refreshCardSummary(); // Update balance cards
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Gagal menyimpan data.");
+                })
+                .finally(() => hideLoader());
+            });
+        }
 
-            } catch (error) {
-                console.error("Gagal delete:", error);
-            } finally {
-                hideLoader();
+        function prependNoteToList(data) {
+            const html = `
+                <li class="list-group-item d-flex justify-content-between align-items-start mb-2" 
+                    data-id="${data.id}" 
+                    data-category-id="${data.category_id}" 
+                    data-note="${data.note}" 
+                    data-amount="${data.amount}">
+                    <div class="text-section flex-grow-1">
+                        <div class="d-flex align-items-center mb-1">
+                            ${data.category ? `<span class="badge bg-light text-dark border me-2 rounded-pill fw-normal">${data.category.icon} ${data.category.name}</span>` : ''}
+                            <span class="note-date text-muted small" style="font-size:0.75rem;">Now</span>
+                        </div>
+                        <span class="note-text fw-semibold text-dark">${data.note}</span> 
+                    </div>
+                    <div class="text-end ms-2">
+                        <span class="fw-bold text-danger d-block mb-1">Rp ${parseInt(data.amount).toLocaleString('id-ID')}</span>
+                        <div>
+                             <button class="btn btn-sm btn-link text-muted p-0 edit-btn"><i class="bi bi-pencil-square"></i></button>
+                             <button class="btn btn-sm btn-link text-danger p-0 ms-2 delete-btn"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                </li>
+            `;
+            
+            // Add to Main History List
+            const list = document.getElementById('notesList');
+            const emptyState = document.getElementById('emptyState');
+            if(list) {
+                if(emptyState) emptyState.remove(); // Remove empty state if present
+                list.insertAdjacentHTML('afterbegin', html);
+            }
+            
+            // Add to Recent List (Home Tab)
+            const recentList = document.getElementById('recentNotesList');
+            if(recentList) {
+                // Remove placeholder if present
+                if(recentList.querySelector('.text-center')) recentList.innerHTML = '';
+                
+                // Add new item
+                let recentHtml = html; 
+                // Strip buttons for recent view
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const buttons = tempDiv.querySelector('.text-end div');
+                if(buttons) buttons.remove();
+                
+                recentList.insertAdjacentHTML('afterbegin', tempDiv.innerHTML);
+                
+                // Limit to 3 items
+                while(recentList.children.length > 3) {
+                    recentList.removeChild(recentList.lastChild);
+                }
             }
         }
-    });
 
-    document.addEventListener('change', async function(e) {
-        if (e.target.classList.contains('detail-check')) {
-
-            showLoader();
-
-            const tr = e.target.closest('tr');
-            const detailId = tr.dataset.id;
-            const noteId = document.getElementById('parentNoteId').value;
-            const isChecked = e.target.checked ? 1 : 0;
-
-            try {
-                const res = await fetch(`/details/${detailId}/check`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ is_checked: isChecked })
-                });
-
-                const data = await res.json();
-
-                const li = document.querySelector(`li[data-id="${noteId}"]`);
-                li.querySelector('.realization-amount').textContent = `Rp ${parseInt(data.total).toLocaleString()}`;
-
-                refreshTotal();
-                loadChartData();
-                refreshCardSummary();
-
-            } catch (error) {
-                console.error("Gagal update:", error);
-            } finally {
-                hideLoader();
+        // --- EDIT / DELETE LOGIC ---
+        // Delegate events from document or main wrapper to handle dynamic items
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+            
+            // DELETE
+            if(target.closest('.delete-btn')) {
+                const li = target.closest('li');
+                const id = li.dataset.id;
+                if(confirm('Hapus transaksi ini?')) {
+                    showLoader();
+                    fetch(`/expenses/${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ _method: 'DELETE' })
+                    }).then(() => {
+                        li.remove();
+                        // Also remove from recent list if present
+                        // Re-fetch or simple DOM removal is hard for synced lists without ID match
+                        // But since we reload page often or user simple flow, maybe just refresh totals
+                        // To be precise: find in other list
+                        const otherLi = document.querySelector(`#recentNotesList li[data-id="${id}"], #notesList li[data-id="${id}"]`);
+                        if(otherLi) otherLi.remove();
+                        
+                        refreshCardSummary();
+                        if(ctxElement) loadChartData(ctxElement.getContext('2d'));
+                    }).finally(() => hideLoader());
+                }
             }
-        }
-    });
-
-
-    function updateParentAmount(noteId, newAmount) {
-        const li = document.querySelector(`li[data-id="${noteId}"]`);
-        if (!li) return;
-        li.querySelector('.fw-bold').textContent = `Rp ${parseInt(newAmount).toLocaleString()}`;
-    }
-
-    document.getElementById('searchNotes').addEventListener('input', function() {
-        const search = this.value.toLowerCase();
-        const items = document.querySelectorAll('#notesList li');
-
-        items.forEach(li => {
-            const text = li.querySelector('.note-text').innerText.toLowerCase();
-            if (text.includes(search)) {
-                li.style.display = '';
-            } else {
-                li.style.display = 'none';
+            
+            // EDIT
+            if(target.closest('.edit-btn')) {
+                const li = target.closest('li');
+                const id = li.dataset.id;
+                const note = li.dataset.note;
+                const catId = li.dataset.categoryId;
+                const amount = li.dataset.amount;
+                
+                document.getElementById('editExpenseId').value = id;
+                document.getElementById('editNoteText').value = note; // Note: this includes amount text currently
+                // Ideally parse out amount, but for now user edits raw text "50000 makan"
+                document.getElementById('editNoteCategory').value = catId;
+                
+                const editModal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+                editModal.show();
             }
         });
-    });
-
-    async function refreshCardSummary() {
-        const month = document.getElementById('monthSelect').value; // ambil bulan dipilih
         
-        // Ambil total alokasi
-        const alokasiRes = await fetch(`/summary/alokasi?month=${month}`);
-        const alokasiTotal = await alokasiRes.json();
-
-        // Ambil total realisasi
-        const realisasiRes = await fetch(`/summary/realisasi?month=${month}`);
-        const realisasiTotal = await realisasiRes.json();
-
-        const incomeRes = await fetch(`/summary/income?month=${month}`);
-        const incomeTotal = await incomeRes.json();
-
-        let saldo = incomeTotal - realisasiTotal;
-
-        // Update card di halaman
-        document.querySelector('#totalExpenseCard').textContent = `Rp ${parseInt(alokasiTotal).toLocaleString()}`;
-        document.querySelector('#totalRealizationCard').textContent = `Rp ${parseInt(realisasiTotal).toLocaleString()}`;
-        document.querySelector('#totalSaldoCard').textContent = `Rp ${parseInt(saldo).toLocaleString()}`;
-
-        // Jika ada grafik, panggil reload grafik juga
-        if (typeof loadChartData === 'function') {
-            loadChartData();
+        // Handle Edit Submit
+        const editForm = document.getElementById('editExpenseForm');
+        if(editForm) {
+            editForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                showLoader();
+                const id = document.getElementById('editExpenseId').value;
+                const note = document.getElementById('editNoteText').value;
+                const catId = document.getElementById('editNoteCategory').value;
+                
+                fetch(`/expenses/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ _method: 'PUT', note: note, category_id: catId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    location.reload(); // Simplest way to sync all lists/charts/amounts for Edit
+                })
+                .finally(() => hideLoader());
+            });
         }
-    }
 
-    document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('toggle-visibility')) {
-        e.stopPropagation();
+        // --- GLOBAL SUMMARY REFRESH ---
+        async function refreshCardSummary() {
+            // Re-fetch dashboard partials or just amounts?
+            // Easier to just fetch amounts.
+            // But we need endpoints. `refreshCardSummary` in old script used `/summary/alokasi` etc.
+            // Let's reuse that logic if endpoints exist. Assuming they do from old code.
+            
+            const monthSelect = document.getElementById('monthSelect'); // Global selector
+            const month = monthSelect ? monthSelect.value : '{{ now()->format("Y-m") }}';
 
-        const selector = e.target.dataset.target;
-        const numberElement = document.querySelector(selector);
-
-        numberElement.classList.toggle('hidden');
-
-        if (numberElement.classList.contains('hidden')) {
-            e.target.classList.replace('bi-eye', 'bi-eye-slash');
-            localStorage.setItem(selector, 'hidden');
-        } else {
-            e.target.classList.replace('bi-eye-slash', 'bi-eye');
-            localStorage.removeItem(selector);
+            try {
+                const [alokasiRes, realisasiRes, incomeRes] = await Promise.all([
+                    fetch(`/summary/alokasi?month=${month}`),
+                    fetch(`/summary/realisasi?month=${month}`),
+                    fetch(`/summary/income?month=${month}`)
+                ]);
+                
+                const alokasi = await alokasiRes.json();
+                const realisasi = await realisasiRes.json();
+                const income = await incomeRes.json();
+                const saldo = income - realisasi;
+    
+                // Update elements
+                const els = {
+                    expense: document.getElementById('totalRealizationCard'),
+                    income: document.getElementById('totalPemasukanCard'),
+                    saldo: document.getElementById('saldoAmount'),
+                };
+                
+                if(els.expense) els.expense.textContent = `Rp ${parseInt(realisasi).toLocaleString('id-ID')}`;
+                if(els.income) els.income.textContent = `Rp ${parseInt(income).toLocaleString('id-ID')}`;
+                if(els.saldo) els.saldo.textContent = `Rp ${parseInt(saldo).toLocaleString('id-ID')}`;
+                
+            } catch(e) { console.error("Summary update failed", e); }
         }
-    }
-});
 
-// restore hidden state on reload
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.sensitive').forEach(el => {
-        const selector = '#' + el.id;
-        if (localStorage.getItem(selector) === 'hidden') {
-            el.classList.add('hidden');
-            let icon = document.querySelector(`[data-target="${selector}"]`);
-            icon?.classList.replace('bi-eye', 'bi-eye-slash');
-        }
-    });
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const chatIcon = document.getElementById("chatIcon");
-    const chatBox = document.getElementById("chatBoxContainer");
-    const closeChat = document.getElementById("closeChat");
-    const chatContent = document.getElementById("chatContent");
-    const summaryButton = document.getElementById("summaryButton");
-
-    chatIcon.addEventListener("click", () => {
-        chatBox.style.display = "block";
-        chatIcon.style.display = "none";
-    });
-
-    closeChat.addEventListener("click", () => {
-        chatBox.style.display = "none";
-        chatIcon.style.display = "block";
-    });
-
-    function addMessage(text, sender = "bot") {
-        const msgDiv = document.createElement("div");
-        msgDiv.classList.add("my-2", sender === "user" ? "text-end" : "text-start");
-        msgDiv.innerHTML = `
-            <span class="d-inline-block p-2 rounded-3 ${sender === "user" ? "bg-primary text-white" : "bg-light"}"
-                style="max-width: 80%; word-wrap: break-word;">
-                ${text}
-            </span>
-        `;
-        chatContent.appendChild(msgDiv);
-        chatContent.scrollTop = chatContent.scrollHeight;
-    }
-
-    summaryButton.addEventListener("click", async () => {
-        addMessage("💰 Ringkasan Keuangan Bulan Ini", "user");
-        addMessage("⏳ Sedang mengambil data ringkasan...");
-
-        try {
-            const userId = "{{ auth()->id() }}";
-            const res = await fetch(`/api/ai/finance/context/${userId}`);
-            const data = await res.json();
-            chatContent.lastChild.remove(); // hapus "sedang mengambil..."
-
-            if (data.error) {
-                addMessage("⚠️ " + data.error);
-            } else {
-                addMessage(data.context, "bot");
+        // --- AI CHAT LOGIC ---
+        // Attached to new #aiChatSend and #aiChatInput in dashboard layout
+        const chatInput = document.getElementById('aiChatInput');
+        const chatSend = document.getElementById('aiChatSend');
+        const chatContent = document.getElementById('chatContent');
+        
+        if(chatSend && chatInput) {
+            chatSend.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+            
+            async function sendMessage() {
+                const text = chatInput.value.trim();
+                if(!text) return;
+                
+                addMessage(text, 'user');
+                chatInput.value = '';
+                addMessage('...', 'bot-loading'); // loading state
+                
+                // Call AI Endpoint (Assuming /api/ai/chat exists or mock it)
+                // Using the specific context endpoint from old script: `/api/ai/finance/context/{id}` is for context/summary
+                // If this is a general chat, we might need a different endpoint. 
+                // For now, let's just trigger summary if they ask "summary", or use existing flow.
+                // The old script only had a "Summary Button".
+                // I will hook into that Summary Button logic for now.
+                
+                // Placeholder response
+                setTimeout(() => {
+                    document.querySelector('.bot-loading')?.remove();
+                    addMessage("Maaf, fitur chat bebas sedang dikembangkan. Coba klik 'AI Insight' di Home!", 'bot');
+                }, 1000);
             }
-        } catch (err) {
-            addMessage("❌ Gagal mengambil data dari server.", "bot");
         }
-    });
-});
+        
+        // AI Summary Button (Home Tab)
+        const summaryBtn = document.getElementById('summaryButton');
+        if(summaryBtn) {
+            summaryBtn.addEventListener('click', async () => {
+                // Open Chat Modal
+                const chatModal = new bootstrap.Modal(document.getElementById('chatModal'));
+                chatModal.show();
+                
+                addMessage("Analisa keuanganku dong!", "user");
+                addMessage("Sebentar, sedang menganalisa data...", "bot");
+                
+                try {
+                    const userId = "{{ auth()->id() }}";
+                    const res = await fetch(`/api/ai/finance/context/${userId}`);
+                    const data = await res.json();
+                    
+                    if (data.error) {
+                         addMessage("⚠️ " + data.error, "bot");
+                    } else {
+                         addMessage(data.context, "bot");
+                    }
+                } catch (err) {
+                    addMessage("❌ Gagal mengambil data.", "bot");
+                }
+            });
+        }
+        
+        function addMessage(text, sender) {
+            if (!chatContent) return;
+            const align = sender === 'user' ? 'text-end' : 'text-start';
+            const bg = sender === 'user' ? 'bg-primary text-white' : 'bg-white border text-dark';
+            
+            const html = `
+                <div class="mb-3 ${align} ${sender === 'bot-loading' ? 'bot-loading' : ''}">
+                    <div class="d-inline-block p-3 rounded-4 ${bg}" style="max-width: 85%;">
+                        ${text}
+                    </div>
+                </div>
+            `;
+            chatContent.insertAdjacentHTML('beforeend', html);
+            chatContent.scrollTop = chatContent.scrollHeight;
+        }
 
+    });
 </script>

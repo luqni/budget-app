@@ -1,562 +1,776 @@
 @extends('layouts.app')
+
 @section('content')
 <style>
-    /* Mobile-first styles */
+    /* Mobile-first styles specific to Dashboard */
     .summary-card {
         padding: 1rem;
-        border-radius: 12px;
+        border-radius: 16px;
         color: #fff;
         font-weight: 600;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .income { background-color: #22c55e; }    /* green */
-    .expense { background-color: #ef4444; }   /* red */
-    .balance { background-color: #3b82f6; }   /* blue */
-    .realization { background-color: #d47f00ff; } 
-
-    /* Responsive layout */
-    @media (max-width: 768px) {
-        .summary-card h5 { font-size: 0.9rem; margin-bottom: 0.25rem; }
-        .summary-card p { font-size: 1rem; }
-        .col-4 { width: 100%; }
-        .row.g-3 { display: flex; flex-direction: column; gap: 0.75rem; }
-    }
-
-    /* Card spacing and layout */
-    .card {
-        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         border: none;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .summary-card::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0) 70%);
+        transform: rotate(30deg);
+        pointer-events: none;
     }
 
-    .list-group-item {
-        border: none;
-        border-bottom: 1px solid #eee;
-        font-size: 0.95rem;
-        padding: 0.75rem 0.5rem;
-    }
-
-    .list-group-item:last-child {
-        border-bottom: none;
-    }
-
-    .btn-sm {
-        font-size: 0.8rem;
-    }
-
-    @media (max-width: 576px) {
-        .list-group-item {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        .list-group-item .text-section {
-            margin-bottom: 0.5rem;
-        }
-    }
-
-    /* Center dashboard on mobile */
-    .container {
-        padding: 0 1rem;
-    }
-
-    /* Chart title */
-    .chart-title {
-        font-size: 1rem;
-        font-weight: 600;
-        text-align: center;
-        margin-bottom: 0.75rem;
-    }
-
-    /* Styling untuk daftar catatan */
-    #notesList {
-        list-style: none;
-        padding: 0;
-        margin-top: 1rem;
-    }
-
-    #notesList li {
-        border: 1px solid #e5e7eb; /* garis pembatas */
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 10px;
+    .income { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .expense { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+    .balance { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+    
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
         background: #fff;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        flex-wrap: wrap;
-        transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+        justify-content: space-around;
+        align-items: center;
+        padding: 10px 0 25px 0; /* Extra padding for safe area */
+        z-index: 1000;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
     }
 
-    #notesList li:hover {
-        background: #f9fafb;
-        transform: scale(1.01);
-    }
-
-    .text-section {
+    .nav-item {
+        text-align: center;
+        color: #9ca3af;
+        text-decoration: none;
+        font-size: 0.75rem;
         flex: 1;
-        font-size: 15px;
-        line-height: 1.5;
-        word-break: break-word;
+        background: none;
+        border: none;
+        padding: 5px;
     }
 
-    .text-section .note-text {
-        font-weight: 500;
+    .nav-item i {
+        display: block;
+        font-size: 1.4rem;
+        margin-bottom: 2px;
+        transition: transform 0.2s;
     }
 
-    .text-section .fw-bold {
-        display: inline-block;
-        margin-top: 4px;
-        color: #dc2626;
-        font-size: 14px;
-    }
-
-    .text-section .realization-amount {
-        display: inline-block;
-        margin-top: 4px;
-        color: #d47f00ff;
-        font-size: 14px;
-    }
-
-    .btn {
-        font-size: 13px;
-    }
-
-    @media (max-width: 576px) {
-        #notesList li {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        #notesList li div:last-child {
-            margin-top: 8px;
-        }
-    }
-
-    * Tambahan style untuk grouping per bulan */
-    .month-divider {
-        border-bottom: 2px solid #3b82f6;
-        margin: 1.5rem 0 1rem;
+    .nav-item.active {
+        color: #0d6efd;
         font-weight: 600;
-        color: #1e3a8a;
-        font-size: 1rem;
     }
 
-    .note-date {
-        font-size: 0.85rem;
-        color: #6b7280;
+    .nav-item.active i {
+        transform: translateY(-2px);
+    }
+
+    /* Floating Action Button (FAB) */
+    .fab-container {
+        position: fixed;
+        bottom: 85px; /* Above nav bar */
+        right: 20px;
+        z-index: 1040;
+    }
+
+    .fab {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #0d6efd;
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        transition: transform 0.2s;
+    }
+
+    .fab:active {
+        transform: scale(0.95);
+    }
+
+    /* Tabs Content */
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease;
+        padding-bottom: 80px; /* Space for FAB/Nav */
+    }
+
+    .tab-content.active {
         display: block;
     }
 
-    #notesList li {
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 10px;
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* List Item Styling */
+    .list-group-item {
+        border: none;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        border-radius: 12px !important;
         background: #fff;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        flex-wrap: wrap;
-        transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
-    }
-
-    #notesList li:hover {
-        background: #f9fafb;
-        transform: scale(1.01);
-    }
-
-    /* Efek hover supaya terasa hidup */
-    .summary-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+        padding: 12px 16px;
     }
 
     .sensitive.hidden {
-        filter: blur(6px);
-        transition: 0.2s;
+        filter: blur(8px);
+        user-select: none;
     }
-
-    /* Warna tombol */
-    #chatIcon button {
-        background: linear-gradient(135deg, #007bff, #00b4d8);
-        color: white;
-        border: none;
-        font-size: 24px;
-    }
-
-    #chatBoxContainer {
-        animation: fadeInUp 0.3s ease;
-        max-height: 80vh;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            transform: translateY(30px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    /* 🌐 RESPONSIVE MOBILE */
-    @media (max-width: 768px) {
-        #chatBoxContainer {
-            width: 90%;
-            right: 5%;
-            left: 5%;
-            bottom: 80px;
-            margin: 0;
-            max-height: 75vh;
-            border-radius: 1rem;
-        }
-
-        #chatContent {
-            height: 55vh !important;
-        }
-
-        #chatIcon {
-            bottom: 20px !important;
-            right: 20px !important;
-        }
-
-        #chatIcon button {
-            width: 55px;
-            height: 55px;
-            font-size: 22px;
-        }
-    }
-
-
 </style>
 
-<div class="container py-3">
-    {{-- Ringkasan --}}
-    <div class="row g-3 mb-3 text-center">
+<!-- TABS CONTENT -->
 
-        <!-- PEMASUKAN -->
-        <div class="col-4 col-md-3 mb-2 mb-md-0">
-            <div class="summary-card income d-flex align-items-center justify-content-between shadow-sm p-2">
+<!-- 1. HOME TAB -->
+<div id="tab-home" class="tab-content active">
+    <!-- Mobile Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div>
+            <span class="text-muted small">Halo,</span>
+            <h5 class="fw-bold m-0">{{ Auth::user()->name }}</h5>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+           <!-- Global Month Selector -->
+           <form action="{{ route('dashboard') }}" method="GET" id="monthFilterForm">
+               <select id="monthSelect" class="form-select form-select-sm shadow-sm border-0 bg-white text-primary fw-bold" style="width:auto;" name="month" onchange="this.form.submit()">
+                   @foreach ($months as $month)
+                       <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
+                           {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
+                       </option>
+                   @endforeach
+               </select>
+           </form>
+        </div>
+    </div>
 
+    <!-- Cards Row 1 -->
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="summary-card balance d-flex justify-content-between align-items-center">
                 <div>
-                    <h5>Pemasukan</h5>
-                    <p id="totalPemasukanCard" class="sensitive">Rp {{ number_format($income) }}</p>
+                    <h5 class="opacity-75">Sisa Saldo</h5>
+                    <p class="m-0 fs-2 sensitive" id="saldoAmount" data-value="0">Rp 0</p>
                 </div>
+                <i class="bi bi-wallet2 fs-1 opacity-25"></i>
+            </div>
+            <div class="d-flex justify-content-end mt-2">
+                 <small class="text-muted"><i class="bi bi-eye toggle-visibility cursor-pointer" data-target="#saldoAmount"></i> Sembunyikan</small>
+            </div>
+        </div>
+    </div>
 
-                <div class="d-flex align-items-center gap-3">
-
-                    <!-- Edit -->
-                    <i class="bi bi-pencil-square"
-                    style="font-size: 1.3rem; cursor:pointer;"
-                    data-bs-toggle="modal"
-                    data-bs-target="#editIncomeModal"></i>
-
-                    <!-- Hide/Unhide -->
-                    <i class="bi bi-eye toggle-visibility"
-                    data-target="#totalPemasukanCard"
-                    style="font-size: 1.3rem; cursor:pointer;"></i>
-
+    <!-- Cards Row 2 -->
+    <div class="row g-3 mb-4">
+        <div class="col-6">
+            <div class="summary-card income">
+                <div class="d-flex justify-content-between">
+                    <h5 class="opacity-75">Pemasukan</h5>
+                    <i class="bi bi-arrow-down-circle opacity-50"></i>
+                </div>
+                <p class="m-0 mt-2 fs-5 sensitive" id="totalPemasukanCard">Rp {{ number_format($income ?? 0, 0, ',', '.') }}</p>
+                 <div class="text-end mt-1">
+                    <i class="bi bi-pencil-square opacity-50 small cursor-pointer" data-bs-toggle="modal" data-bs-target="#editIncomeModal"></i>
                 </div>
             </div>
         </div>
-
-        <!-- ALOKASI -->
-        <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
+        <div class="col-6">
             <div class="summary-card expense">
-                <h5>Alokasi</h5>
-                <p id="totalExpenseCard">Rp {{ number_format($expense ?? 0) }}</p>
-            </div>
-        </div>
-
-        <!-- REALISASI -->
-        <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
-            <div class="summary-card realization">
-                <h5>Realisasi</h5>
-                <p id="totalRealizationCard">Rp {{ number_format($realization ?? 0) }}</p>
-            </div>
-        </div>
-
-        <!-- SALDO -->
-        <div class="col-4 col-md-3 mb-2 mb-md-0 shadow-sm">
-            <div class="summary-card balance d-flex align-items-center justify-content-between p-2">
-
-                <div>
-                    <h5>Saldo</h5>
-                    <p id="totalSaldoCard" class="sensitive">Rp {{ number_format($balance ?? 0) }}</p>
+                <div class="d-flex justify-content-between">
+                    <h5 class="opacity-75">Pengeluaran</h5>
+                    <i class="bi bi-arrow-up-circle opacity-50"></i>
                 </div>
-
-                <!-- Hide/Unhide -->
-                <i class="bi bi-eye toggle-visibility"
-                data-target="#totalSaldoCard"
-                style="font-size: 1.3rem; cursor:pointer;"></i>
-
+                <p class="m-0 mt-2 fs-5 sensitive" id="totalRealizationCard">Rp {{ number_format($totalRealization ?? 0, 0, ',', '.') }}</p>
             </div>
-        </div>
-
-    </div>
-
-    {{-- Grafik --}}
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="chart-title">Pengeluaran Bulanan (12 Bulan Terakhir)</div>
-            <canvas id="expenseChart" height="150"></canvas>
         </div>
     </div>
 
-    {{-- Input Dinamis --}}
-    <div class="card shadow-sm mb-4">
+    <!-- Bar Chart Expense per Month -->
+    <div class="bg-white p-3 rounded-3 shadow-sm mb-4 border">
+        <canvas id="expenseChart" height="250"></canvas>
+    </div>
+
+    <!-- Doughnut Chart Expense per Category -->
+    <h6 class="fw-bold mb-3 px-2">Pengeluaran per Kategori (3 Bulan Terakhir)</h6>
+    <div class="bg-white p-3 rounded-3 shadow-sm mb-3 border">
+        <div style="position: relative; height: 250px;">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Quick Actions / Promo or Insight -->
+    <div class="bg-white p-3 rounded-4 shadow-sm mb-3 border">
+        <div class="d-flex align-items-center mb-2">
+             <i class="bi bi-robot text-primary me-2 fs-4"></i>
+             <h6 class="m-0 fw-bold">AI Insight</h6>
+        </div>
+        <p class="text-muted small m-0">
+            Pengeluaranmu bulan ini cukup terkendali. Cek statistik untuk detailnya!
+        </p>
+        <button id="summaryButton" class="btn btn-sm btn-light text-primary mt-2 w-100 fw-bold">Tanya AI Selengkapnya</button>
+    </div>
+
+    <!-- Recent Transactions Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+        <h6 class="fw-bold m-0">Transaksi Terakhir</h6>
+        <button onclick="switchTab('history')" class="btn btn-link btn-sm text-decoration-none p-0">Lihat Semua</button>
+    </div>
+    
+    <!-- Recent List Preview -->
+    <!-- Recent List Preview -->
+    <ul class="list-unstyled" id="recentNotesList">
+        @foreach ($expenses->take(5) as $exp)
+            <li class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 shadow-sm" style="width: 40px; height: 40px; background: {{ $exp->category->color ?? '#eee' }}20; color: {{ $exp->category->color ?? '#333' }}; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.2rem;">{{ $exp->category->icon ?? '📝' }}</span>
+                    </div>
+                    <div>
+                        <h6 class="m-0 fw-bold text-dark" style="font-size: 0.9rem;">{{ Str::limit($exp->note, 20) }}</h6>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            {{ \Carbon\Carbon::parse($exp->date)->translatedFormat('d M') }} {{ $exp->created_at ? $exp->created_at->format('H:i') : '' }} &bull; {{ $exp->category->name ?? 'Umum' }}
+                        </small>
+                    </div>
+                </div>
+                <span class="fw-bold text-danger" style="font-size: 0.9rem;">- Rp {{ number_format($exp->amount, 0, ',', '.') }}</span>
+            </li>
+        @endforeach
+        
+        @if(count($expenses) == 0)
+             <li class="text-center text-muted py-3 small">Belum ada transaksi bulan ini.</li>
+        @endif
+    </ul>
+</div>
+
+<!-- 2. HISTORY TAB -->
+<div id="tab-history" class="tab-content">
+    <h5 class="fw-bold mb-3 px-2">Riwayat Transaksi</h5>
+    
+    <!-- Search Bar -->
+    <div class="bg-white p-2 rounded-3 shadow-sm mb-3 d-flex align-items-center border">
+        <i class="bi bi-search text-muted ms-2"></i>
+        <input type="text" id="searchNotes" class="form-control border-0 shadow-none bg-transparent" placeholder="Cari catatan...">
+    </div>
+
+    <!-- Full List -->
+    <ul class="list-unstyled" id="notesList">
+         @if(count($expenses) == 0)
+            <div id="emptyState" class="text-center py-5">
+                <i class="bi bi-journal-x fs-1 text-muted opacity-50"></i>
+                <p class="text-muted mt-2">Belum ada transaksi bulan ini.</p>
+            </div>
+         @endif
+
+         @foreach ($expenses as $exp)
+            <li class="list-group-item d-flex justify-content-between align-items-start mb-2 cursor-pointer list-item-hover" 
+                onclick="if(!event.target.closest('button')) openDetailModal({{ $exp->id }}, '{{ addslashes($exp->note) }}')">
+                <div class="text-section flex-grow-1">
+                    <div class="d-flex align-items-center mb-1">
+                        @if($exp->category)
+                             <span class="badge bg-light text-dark border me-2 rounded-pill fw-normal">
+                                 {{ $exp->category->icon }} {{ $exp->category->name }}
+                             </span>
+                        @endif
+                        <span class="note-date text-muted small" style="font-size:0.75rem;">
+                             {{ \Carbon\Carbon::parse($exp->date)->translatedFormat('d M') }} {{ $exp->created_at ? $exp->created_at->format('H:i') : '' }}
+                        </span>
+                    </div>
+                    <span class="note-text fw-semibold text-dark">{{ $exp->note }}</span> 
+                </div>
+                <div class="text-end ms-2">
+                    <span class="fw-bold text-danger d-block mb-1">Rp {{ number_format($exp->amount, 0, ',', '.') }}</span>
+                    <div>
+                         <button class="btn btn-sm btn-link text-muted p-0 edit-btn"><i class="bi bi-pencil-square"></i></button>
+                         <button class="btn btn-sm btn-link text-danger p-0 ms-2 delete-btn"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </li>
+        @endforeach
+    </ul>
+</div>
+
+<!-- 3. STATS TAB -->
+<div id="tab-stats" class="tab-content">
+    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+        <h5 class="fw-bold mb-0">Statistik</h5>
+        <input type="month" id="statsMonthFilter" class="form-control form-control-sm w-auto" value="{{ $selectedMonth ?? date('Y-m') }}">
+    </div>
+    <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h5 class="mb-3 text-center">Tambah Catatan</h5>
-            <form id="noteForm" class="mb-3">
-                @csrf
-                <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-3 mb-2 mb-md-0">
-                        <label for="noteMonth" class="form-label">Bulan</label>
-                        <input type="month" id="noteMonth" class="form-control shadow-sm" value="{{ now()->format('Y-m') }}" required>
-                    </div>
-                    <div class="col-12 col-md-7 mb-2 mb-md-0">
-                        <label for="noteText" class="form-label">Catatan</label>
-                        <input type="text" id="noteText" class="form-control shadow-sm" placeholder="Belanja Bulanan 500000" required>
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <button class="btn btn-primary w-100 shadow-sm" type="submit">Tambah</button>
-                    </div>
-                </div>
-            </form>
-
-            {{-- Filter Bulan Arsip --}}
-            <div class="card shadow-sm mb-4 ">
-                <div class="card-body">
-                    <form id="monthFilterForm" class="d-flex align-items-center justify-content-between flex-wrap">
-                        <label for="monthSelect" class="fw-semibold me-2 mb-2 mb-md-0">Lihat Arsip Bulan:</label>
-                        <select id="monthSelect" class="form-select w-auto shadow-sm" name="month">
-                            <option value="">Semua Bulan</option>
-                            @foreach ($months as $month)
-                                <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
-            </div>
-
-            <div class="mb-3 d-flex justify-content-end">
-                <div class="input-group" style="max-width: 260px;">
-                    <span class="input-group-text bg-white shadow-sm">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" id="searchNotes" class="form-control shadow-sm" placeholder="Cari catatan...">
-                </div>
-            </div>
-
-
-            <div id="notesList">
-                @foreach ($groupedExpenses as $month => $expenses)
-                    <div class="month-divider">
-                        {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}
-                    </div>
-
-                    <ul class="list-unstyled shadow-sm">
-                        @foreach ($expenses as $exp)
-                            <li data-id="{{ $exp->id }}">
-                                <div class="text-section">
-                                    <span class="note-text">{{ $exp->note }}</span><br>
-                                    Alokasi : <span class="fw-bold">Rp {{ number_format($exp->amount) }}</span> <br/>
-                                    Realisasi : <span class="realization-amount">Rp {{ number_format($exp->total_realisasi) }}</span>
-                                    <span class="note-date">
-                                        {{ \Carbon\Carbon::parse($exp->created_at)->translatedFormat('d M Y') }}
-                                    </span>
-                                </div>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-secondary edit-btn me-2">Edit</button>
-                                    <button class="btn btn-sm btn-outline-danger delete-btn">Hapus</button>
-                                    <button class="btn btn-sm btn-outline-primary detail-btn">Detail</button>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endforeach
-            </div>
-
-            <div class="mt-3 text-end fw-bold">
-                Total: Rp <span id="totalExpense">{{ number_format($totalExpense) }}</span>
+            <h6 class="card-title text-center text-muted small mb-3">Pengeluaran per Kategori</h6>
+            <div style="height: 250px; position: relative;">
+                 <canvas id="expenseChart"></canvas>
             </div>
         </div>
     </div>
     
-    <div class="modal fade" id="detailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Detail Belanja</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+    <!-- Breakdown per Category -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <h6 class="fw-bold px-3 pt-3 mb-2">Rincian Kategori</h6>
+            <ul class="list-group list-group-flush" id="categoryList">
+                <!-- Javascript will populate this -->
+                <li class="list-group-item text-center text-muted py-4 small">
+                    Memuat data...
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
 
-                <div class="modal-body">
-
-                    <h6 id="detailTitle" class="mb-3"></h6>
-
-                    <!-- Scrollable Table -->
-                    <div style="max-height: 300px; overflow-y: auto;">
-                        <table class="table table-sm" id="detailTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th></th>
-                                    <th>Nama Item</th>
-                                    <th>Qty</th>
-                                    <th>Harga (Rp)</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <hr>
-
-                    <form id="detailForm">
-                        @csrf
-                        <input type="hidden" id="parentNoteId">
-
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <input type="text" id="detailName" class="form-control shadow-sm" placeholder="Nama item" required>
-                            </div>
-                            <div class="col-md-2">
-                                <input type="number" id="detailQty" class="form-control shadow-sm" placeholder="Qty" required min="1">
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" id="detailPrice" class="form-control shadow-sm" placeholder="Harga" required min="0">
-                            </div>
-                            <div class="col-md-1 d-grid">
-                                <button class="btn btn-primary btn-sm shadow-sm"> 
-                                    <i class="bi bi-bag-plus-fill" style="font-size: 1.3rem;"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-
-                </div>
-
-
-            </div>
+<!-- 4. PROFILE TAB -->
+<div id="tab-profile" class="tab-content">
+    <h5 class="fw-bold mb-4 px-2">Profil Saya</h5>
+    
+    <div class="bg-white p-4 rounded-4 shadow-sm text-center mb-4 border">
+        <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name }}&background=0d6efd&color=fff&size=128" 
+             class="rounded-circle mb-3 shadow-sm" width="80" height="80">
+        <h5 class="fw-bold mb-1">{{ Auth::user()->name }}</h5>
+        <p class="text-muted small">{{ Auth::user()->email }}</p>
+        
+        <div class="row mt-4 text-start">
+             <div class="col-6 text-center border-end">
+                 <small class="text-muted d-block uppercase" style="font-size:0.7rem; letter-spacing:1px;">PEMASUKAN</small>
+                 <span class="fw-bold text-success">{{ number_format($income ?? 0, 0, ',', '.') }}</span>
+             </div>
+             <div class="col-6 text-center">
+                 <small class="text-muted d-block uppercase" style="font-size:0.7rem; letter-spacing:1px;">PENGELUARAN</small>
+                 <span class="fw-bold text-danger">{{ number_format($totalRealization ?? 0, 0, ',', '.') }}</span>
+             </div>
         </div>
     </div>
 
-    @if(session('need_income') || auth()->user()->income == 0)
-    <div class="modal fade show" id="incomeModal" style="display:block; background:rgba(0,0,0,0.6)">
-        <div class="modal-dialog">
-            <div class="modal-content p-3">
-                <h4 class="mb-3">Masukkan Pemasukan Awal</h4>
-                <form action="{{ route('income.store') }}" method="POST">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="monthSelect" class="form-label fw-semibold">Pilih Bulan</label>
-                        <select id="monthSelect" class="form-select shadow-sm" name="monthIncome">
-                            <option value="" disabled> --Pilih Bulan-- </option>
-                            @foreach ($months as $month)
-                                <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="incomeInput" class="form-label fw-semibold">Total Pemasukan</label>
-                        <input 
-                            type="number" 
-                            name="income" 
-                            id="incomeInput"
-                            class="form-control shadow-sm" 
-                            value="{{ $income }}" 
-                            required
-                        >
-                    </div>
-                    <button class="btn btn-primary mt-3 w-100">Simpan</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    <div class="modal fade" id="editIncomeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content p-3 position-relative">
-
-                <!-- Tombol Close -->
-                <button type="button" class="btn-close position-absolute" 
-                    style="right: 10px; top: 10px;" 
-                    data-bs-dismiss="modal" aria-label="Close"></button>
-
-                <h4 class="mb-3">Edit Pemasukan</h4>
-                <form action="{{ route('income.update') }}" method="POST" class="p-3">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="mb-3">
-                        <label for="monthSelect" class="form-label fw-semibold">Pilih Bulan</label>
-                        <select id="monthSelect" class="form-select shadow-sm" name="monthIncome">
-                            <option value="" disabled> --Pilih Bulan-- </option>
-                            @foreach ($months as $month)
-                                <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="incomeInput" class="form-label fw-semibold">Total Pemasukan</label>
-                        <input 
-                            type="number" 
-                            name="income" 
-                            id="incomeInput"
-                            class="form-control shadow-sm" 
-                            value="{{ $income }}" 
-                            required
-                        >
-                    </div>
-
-                    <button class="btn btn-success w-100">Update</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Floating Chat Icon -->
-    <div id="chatIcon" class="position-fixed bottom-0 end-0 m-4" style="margin-bottom:3.5rem !important;">
-        <button class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
-            style="width: 60px; height: 60px; font-size: 24px;">
-            💬
+    <div class="list-group shadow-sm rounded-4 overflow-hidden border-0">
+        <!-- Install PWA Button (Hidden by default, shown via JS) -->
+        <button id="installPwaBtn" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3" style="display:none;">
+            <div><i class="bi bi-download me-3 text-success"></i> Install Aplikasi</div>
+            <i class="bi bi-chevron-right small text-muted"></i>
         </button>
-    </div>
 
-    <!-- Chatbox -->
-    <div id="chatBoxContainer"
-        class="position-fixed bottom-0 end-0 m-4 shadow-lg rounded-4 bg-white border"
-        style="width: 350px; display: none; z-index: 1050; margin-bottom: 2.5rem;">
-        <div class="d-flex justify-content-between align-items-center p-2 border-bottom bg-primary text-white rounded-top-4">
-            <strong>Asisten Keuangan AI</strong>
-            <button id="closeChat" class="btn btn-sm btn-light">✕</button>
-        </div>
-
-        <div id="chatContent" class="p-3" style="height: 300px; overflow-y: auto; font-size: 14px;">
-            <div class="text-muted small text-center">Klik tombol di bawah untuk ringkasan keuanganmu 📊</div>
-        </div>
-
-        <div class="p-3 border-top bg-light text-center rounded-bottom-4">
-            <button id="summaryButton" class="btn btn-success w-100 fw-bold">
-                💰 Ringkasan Keuangan Bulan Ini
+        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3" data-bs-toggle="modal" data-bs-target="#editIncomeModal">
+            <div><i class="bi bi-wallet2 me-3 text-primary"></i> Edit Pemasukan Alokasi</div>
+            <i class="bi bi-chevron-right small text-muted"></i>
+        </button>
+        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
+            <div><i class="bi bi-gear me-3 text-secondary"></i> Pengaturan</div>
+            <i class="bi bi-chevron-right small text-muted"></i>
+        </button>
+        <form action="{{ route('logout') }}" method="POST" class="d-block m-0">
+            @csrf
+            <button type="submit" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-danger">
+                <div><i class="bi bi-box-arrow-right me-3"></i> Keluar</div>
             </button>
+        </form>
+    </div>
+    
+    <div class="text-center mt-4 text-muted small opacity-50">
+        Versi 2.0 (Mobile First)
+    </div>
+</div>
+
+<!-- Floating Action Button -->
+<div class="fab-container">
+    <button class="fab" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+        <i class="bi bi-plus-lg"></i>
+    </button>
+</div>
+
+<!-- MODALS -->
+
+<!-- Add Expense Modal (Simplified for Mobile) -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Tambah Pengeluaran</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <form id="noteForm">
+                    @csrf
+                    <!-- Hidden input to supply month for JS logic -->
+                    <input type="hidden" id="noteMonth" value="{{ $selectedMonth }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">NOMINAL (RP)</label>
+                        <input type="text" id="amountInput" class="form-control form-control-lg fs-2 fw-bold text-primary border-0 bg-light" placeholder="0" inputmode="numeric">
+                        <!-- Note: logic in JS must take this value and put it into hidden 'noteText' structure or separate amount field -->
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">KATEGORI</label>
+                        <select id="noteCategory" class="form-select form-select-lg bg-light border-0" required>
+                            <option value="" selected disabled>Pilih Kategori...</option>
+                            @foreach ($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->icon }} {{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">CATATAN</label>
+                        <textarea id="noteText" class="form-control bg-light border-0" rows="2" placeholder="Beli Nasi Goreng..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3 fw-bold mt-2">Simpan</button>
+                </form>
+            </div>
         </div>
     </div>
+</div>
 
 
+<!-- Edit Expense Modal -->
+<div class="modal fade" id="editExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Edit Catatan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <form id="editExpenseForm">
+                    @csrf
+                    <input type="hidden" id="editExpenseId">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Catatan</label>
+                        <input type="text" id="editNoteText" class="form-control" required>
+                    </div>
+                    <!-- Add Amount Edit here too if we want full editing power -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Kategori</label>
+                        <select id="editNoteCategory" class="form-select">
+                            <option value="">-- Pilih --</option>
+                            @foreach ($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->icon }} {{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-3">Simpan Perubahan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Income Modal (Initial Setup) -->
+@if(!isset($income) || $income == 0)
+<div class="modal fade show" id="incomeModal" style="display:block; background:rgba(0,0,0,0.8); z-index: 9999;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 p-3 border-0">
+            <h4 class="mb-3 fw-bold text-center">Mulai Budgeting! 💰</h4>
+            <p class="text-center text-muted small mb-4">Masukkan pemasukan bulan ini untuk mulai mencatat.</p>
+            <form action="{{ route('income.store') }}" method="POST">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">BULAN</label>
+                    <input type="month" id="monthIncomeInput" class="form-control bg-light border-0" name="monthIncome" value="{{ now()->format('Y-m') }}" required>
+                </div>
+                <div class="mb-3">
+                     <label class="form-label fw-bold small">TOTAL PEMASUKAN</label>
+                    <input type="number" name="income" class="form-control form-control-lg fw-bold text-success bg-light border-0" placeholder="Rp 0" required>
+                </div>
+                <button class="btn btn-primary w-100 rounded-3 py-2 fw-bold">Mulai!</button>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Edit Income Modal -->
+<div class="modal fade" id="editIncomeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Kelola Pemasukan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 1. Main Allocated Income -->
+                <div class="card bg-light border-0 mb-3 rounded-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-bold small text-muted mb-2">PEMASUKAN UTAMA (GAJI UTAMA)</h6>
+                        <form action="{{ route('income.update') }}" method="POST">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="monthIncome" value="{{ $selectedMonth }}">
+                            
+                            <div class="input-group">
+                                <span class="input-group-text border-0 bg-white">Rp</span>
+                                <input type="number" name="income" class="form-control fw-bold border-0" value="{{ $mainIncome ?? 0 }}" placeholder="0">
+                                <button class="btn btn-primary" type="submit"><i class="bi bi-check-lg"></i></button>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.75rem;">Ubah nolimain gaji/jatah bulanan di sini.</small>
+                        </form>
+                    </div>
+                </div>
+
+                <hr class="my-3 opacity-25">
+
+                <!-- 2. Additional Income -->
+                <h6 class="fw-bold small text-muted mb-3 d-flex justify-content-between align-items-center">
+                    PEMASUKAN TAMBAHAN
+                    <button class="btn btn-sm btn-outline-primary py-0" type="button" data-bs-toggle="collapse" data-bs-target="#addIncomeForm">
+                        <i class="bi bi-plus-lg"></i> Tambah
+                    </button>
+                </h6>
+
+                <!-- Add Form (Collapse) -->
+                <div class="collapse mb-3" id="addIncomeForm">
+                    <div class="card border border-primary border-opacity-25 shadow-sm rounded-3">
+                        <div class="card-body p-3 bg-aliceblue">
+                            <form action="{{ route('income.transaction.store') }}" method="POST">
+                                @csrf
+                                <div class="mb-2">
+                                    <input type="text" name="title" class="form-control form-control-sm" placeholder="Nama Sumber (mis: Proyek A)" required>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-7">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white">Rp</span>
+                                            <input type="number" name="amount" class="form-control" placeholder="Jumlah" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="date" name="date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">Simpan Tambahan</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- List -->
+                <ul class="list-group list-group-flush border rounded-3 overflow-hidden">
+                    @forelse ($additionalIncomes as $addIncome)
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+                            <div>
+                                <div class="fw-semibold text-dark small">{{ $addIncome->title }}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">{{ \Carbon\Carbon::parse($addIncome->date)->translatedFormat('d M Y') }}</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="d-block fw-bold text-success small">+ {{ number_format($addIncome->amount, 0, ',', '.') }}</span>
+                                <form action="{{ route('income.transaction.destroy', $addIncome->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus pemasukan ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 0.7rem;">Hapus</button>
+                                </form>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="list-group-item text-center text-muted small py-3">Belum ada pemasukan tambahan.</li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Chat Modal (Bottom Sheet style) -->
+<div class="modal fade" id="chatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-fullscreen-md-down">
+        <div class="modal-content rounded-top-4 border-0">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-robot me-2"></i> Asisten Keuangan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light" id="chatContent">
+                 <div class="text-center text-muted my-5">
+                     <i class="bi bi-chat-dots fs-1 mb-2 d-block"></i>
+                     <small>Tanyakan apa saja tentang keuanganmu!</small>
+                 </div>
+            </div>
+            <div class="modal-footer p-2 bg-white">
+                <div class="input-group">
+                    <input type="text" class="form-control border-0 bg-light" placeholder="Tulis pesan..." id="aiChatInput">
+                    <button class="btn btn-primary rounded-end" id="aiChatSend"><i class="bi bi-send-fill"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('home')">
+        <i class="bi bi-house-door-fill"></i>
+        <span>Home</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('history')">
+        <i class="bi bi-receipt"></i>
+        <span>Transaksi</span>
+    </button>
+    <div style="width: 50px;"></div> <!-- Spacer for FAB -->
+    <button class="nav-item" onclick="switchTab('stats')">
+        <i class="bi bi-graph-up"></i>
+        <span>Statistik</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('profile')">
+        <i class="bi bi-person-fill"></i>
+        <span>Profil</span>
+    </button>
+</nav>
+
+<!-- Hidden Holders for JS Logic compatibility with old script -->
+<div class="d-none">
+    <span id="totalExpenseCardHidden">{{ number_format($totalRealization ?? 0, 0, ',', '.') }}</span>
 </div>
 
 @include('partials.chart-script')
+@include('partials.expense-detail-script')
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex flex-column">
+                    <small class="text-muted uppercase small" style="letter-spacing: 1px;">RINCIAN</small>
+                    <h5 class="modal-title fw-bold" id="detailModalTitle">Belanja Bulanan</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="currentExpenseId">
+                
+                <!-- Add New Item Form -->
+                <form id="addDetailForm" class="mb-4 bg-light p-3 rounded-3">
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="text" id="detailName" class="form-control border-0 shadow-sm" placeholder="Nama Item (mis: Beras)" required>
+                        <input type="number" id="detailQty" class="form-control border-0 shadow-sm text-center" style="width: 70px;" value="1" min="1" required>
+                    </div>
+                    <div class="d-flex gap-2">
+                         <div class="input-group shadow-sm border-0 rounded-3 overflow-hidden">
+                            <span class="input-group-text border-0 bg-white text-muted small">Rp</span>
+                            <input type="number" id="detailPrice" class="form-control border-0" placeholder="Harga Satuan" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-3 px-3"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </form>
+
+                <!-- List Items -->
+                <h6 class="fw-bold mb-3 small text-muted">DAFTAR BELANJA</h6>
+                <ul class="list-group list-group-flush" id="detailItemsList">
+                    <!-- JS Populated -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple Tab Switcher
+    function switchTab(tabId) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        // Deactivate nav items
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        
+        // Show selected
+        document.getElementById('tab-' + tabId).classList.add('active');
+        
+        // Activate nav item
+        const navItems = document.querySelectorAll('.nav-item');
+        if(tabId === 'home') navItems[0].classList.add('active');
+        if(tabId === 'history') navItems[1].classList.add('active');
+        if(tabId === 'stats') navItems[2].classList.add('active');
+        if(tabId === 'profile') navItems[3].classList.add('active');
+
+        // Special case for Stats to re-render chart if needed
+        if(tabId === 'stats' && window.expenseChart) {
+            window.expenseChart.resize();
+        }
+        
+        // Save state
+        localStorage.setItem('activeTab', tabId);
+    }
+    
+    // Restore Tab
+    document.addEventListener("DOMContentLoaded", function () {
+        const lastTab = localStorage.getItem('activeTab') || 'home';
+        switchTab(lastTab);
+        
+        // Handle PWA Install Button Visibility
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('installPwaBtn');
+            if(installBtn) {
+                installBtn.style.display = 'flex';
+                installBtn.addEventListener('click', () => {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        }
+                        deferredPrompt = null;
+                        installBtn.style.display = 'none';
+                    });
+                });
+            }
+        });
+        
+        // Copy "Recent" to "Home" tab on load
+        const mainList = document.getElementById('notesList');
+        const recentList = document.getElementById('recentNotesList');
+        if(mainList && recentList) {
+            recentList.innerHTML = '';
+            const items = mainList.querySelectorAll('li');
+            if(items.length === 0) {
+                 recentList.innerHTML = '<li class="text-center text-muted py-3 small">Belum ada transaksi.</li>';
+            } else {
+                for(let i=0; i<Math.min(items.length, 3); i++) {
+                    const clone = items[i].cloneNode(true);
+                    // Remove buttons for the preview if needed
+                    const buttons = clone.querySelector('.text-end div');
+                    if(buttons) buttons.style.display = 'none';
+                    recentList.appendChild(clone);
+                }
+            }
+        }
+        
+        // Calculate and Show "Sisa Saldo" logic
+        // We use safe parsing
+        const incomeEl = document.getElementById('totalPemasukanCard');
+        const expenseEl = document.getElementById('totalRealizationCard');
+        if(incomeEl && expenseEl) {
+             const income = parseInt(incomeEl.innerText.replace(/\D/g, '')) || 0;
+             const expense = parseInt(expenseEl.innerText.replace(/\D/g, '')) || 0;
+             const saldo = income - expense;
+             const saldoEl = document.getElementById('saldoAmount');
+             if(saldoEl) {
+                 saldoEl.innerText = 'Rp ' + saldo.toLocaleString('id-ID');
+             }
+        }
+        
+        // Visibility Toggle compatibility
+        document.querySelectorAll('.toggle-visibility').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const target = document.querySelector(targetId);
+                if (target) {
+                    target.classList.toggle('hidden');
+                    this.classList.toggle('bi-eye');
+                    this.classList.toggle('bi-eye-slash');
+                }
+            });
+        });
+    });
+</script>
 @endsection
