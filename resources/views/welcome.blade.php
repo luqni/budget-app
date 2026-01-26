@@ -209,7 +209,13 @@
                 <div class="feature-icon">
                     <i class="bi bi-robot"></i>
                 </div>
-                <div class="feature-text">Analisa AI</div>
+                <div class="feature-text">Chatbox</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="bi bi-chat-quote-fill"></i>
+                </div>
+                <div class="feature-text">Renungan Harian</div>
             </div>
         </div>
     </div>
