@@ -9,61 +9,34 @@ class QuoteSeeder extends Seeder
 {
     public function run(): void
     {
-        $quotes = [
-            [
-                'content' => 'Tidak akan bergeser kaki seorang hamba pada hari kiamat sampai ia ditanya tentang umurnya untuk apa ia habiskan, ilmunya untuk apa ia amalkan, hartanya dari mana ia peroleh dan kemana ia belanjakan, serta tubuhnya untuk apa ia gunakan.',
-                'source' => 'HR. Tirmidzi',
-                'type' => 'hadith'
-            ],
-            [
-                'content' => 'Allah akan memberikan rahmat kepada seseorang yang berusaha mencari harta dengan jalan yang halal, dan menyedekahkan harta tersebut dengan jalan yang benar.',
-                'source' => 'HR. Bukhari',
-                'type' => 'hadith'
-            ],
-            [
-                'content' => 'Sesungguhnya pemboros-pemboros itu adalah saudara-saudara syaitan.',
-                'source' => 'QS. Al-Isra: 27',
-                'type' => 'quran'
-            ],
-            [
-                'content' => 'Jangan menyimpan apa yang tersisa setelah belanja, tapi belanjakan apa yang tersisa setelah menabung.',
-                'source' => 'Warren Buffett',
-                'type' => 'quote'
-            ],
-            [
-                'content' => 'Bukan seberapa banyak uang yang kamu hasilkan, tapi seberapa banyak uang yang bisa kamu simpan.',
-                'source' => 'Robert Kiyosaki',
-                'type' => 'quote'
-            ],
-            [
-                'content' => 'Harta tidak akan berkurang karena sedekah.',
-                'source' => 'HR. Muslim',
-                'type' => 'hadith'
-            ],
-            [
-                'content' => 'Kekayaan bukanlah dengan banyaknya harta, namun kekayaan adalah kekayaan hati (qanaah).',
-                'source' => 'HR. Bukhari & Muslim',
-                'type' => 'hadith'
-            ],
-             [
-                'content' => 'Sebaik-baik harta adalah harta yang berada dalam penguasaan orang saleh.',
-                'source' => 'HR. Ahmad',
-                'type' => 'hadith'
-            ],
-            [
-                'content' => 'Hutang adalah beban di malam hari dan kehinaan di siang hari.',
-                'source' => 'Umar bin Khattab',
-                'type' => 'quote'
-            ],
-             [
-                'content' => 'Menunda-nunda pembayaran hutang bagi orang yang mampu adalah kezaliman.',
-                'source' => 'HR. Bukhari',
-                'type' => 'hadith'
-            ],
-        ];
+        $path = database_path('data/quotes.json');
+        
+        if (file_exists($path)) {
+            $json = file_get_contents($path);
+            $quotes = json_decode($json, true);
+        } else {
+            // Fallback content if file not found
+            $quotes = [
+                // ... stored fallback ...
+                 [
+                    'content' => 'Tidak akan bergeser kaki seorang hamba pada hari kiamat sampai ia ditanya tentang umurnya untuk apa ia habiskan, ilmunya untuk apa ia amalkan, hartanya dari mana ia peroleh dan kemana ia belanjakan, serta tubuhnya untuk apa ia gunakan.',
+                    'source' => 'HR. Tirmidzi',
+                    'type' => 'hadith'
+                ],
+            ];
+        }
 
         foreach ($quotes as $q) {
             Quote::firstOrCreate(['content' => $q['content']], $q);
+        }
+        
+        // Ensure one quote is active for today if none exists
+        $today = now()->format('Y-m-d');
+        if (!Quote::where('is_active_for_date', $today)->exists()) {
+             $quote = Quote::inRandomOrder()->first();
+             if($quote) {
+                 $quote->update(['is_active_for_date' => $today]);
+             }
         }
     }
 }
