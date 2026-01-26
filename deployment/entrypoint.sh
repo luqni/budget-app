@@ -29,6 +29,10 @@ chown -R www-data:www-data /var/www/html/storage
 chown -R www-data:www-data /var/www/html/bootstrap/cache
 chown -R www-data:www-data /var/www/html/database
 
+# Start Scheduler in background
+echo "Starting Scheduler..."
+php artisan schedule:work > /dev/null 2>&1 &
+
 # Start Supervisor (which starts Nginx and PHP-FPM)
 echo "Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

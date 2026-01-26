@@ -17,43 +17,17 @@
         const list = document.getElementById('detailItemsList');
         list.innerHTML = '<li class="text-center text-muted py-3 small">Memuat...</li>';
 
+        console.log('Fetching details for Expense ID:', expenseId);
         fetch(`/expense/${expenseId}/details`)
             .then(res => res.json())
             .then(data => {
-                list.innerHTML = '';
-                if(data.length === 0) {
-                    list.innerHTML = '<li class="text-center text-muted py-3 small">Belum ada rincian item. Tambahkan sekarang!</li>';
-                    return;
-                }
-
-                data.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom';
-                    
-                    const isChecked = item.is_checked ? 'checked' : '';
-                    const textDecoration = item.is_checked ? 'text-decoration-line-through text-muted' : '';
-                    const totalItem = item.qty * item.price;
-
-                    li.innerHTML = `
-                        <div class="d-flex align-items-center" style="gap: 10px;">
-                            <input class="form-check-input md-checkbox" type="checkbox" ${isChecked} 
-                                onchange="toggleCheckDetail(${item.id}, this.checked)">
-                            
-                            <div class="${textDecoration} detail-text-${item.id}">
-                                <div class="fw-semibold small">${item.name}</div>
-                                <div class="text-muted" style="font-size: 0.75rem;">
-                                    ${item.qty} x ${new Intl.NumberFormat('id-ID').format(item.price)}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="fw-bold me-3 small">Rp ${new Intl.NumberFormat('id-ID').format(totalItem)}</span>
-                            <button onclick="deleteDetail(${item.id})" class="btn btn-sm text-danger p-0"><i class="bi bi-x-circle"></i></button>
-                        </div>
-                    `;
-                    list.appendChild(li);
-                });
-            });
+                console.log('Data received:', data);
+                // Temporary Debug Alert
+                // alert('Debug: Loaded ' + (data ? data.length : 0) + ' items for Expense ID ' + expenseId);
+                
+                renderDetailsList(data);
+            })
+            .catch(err => console.error('Fetch error:', err));
     }
 
     // Add New Detail
@@ -83,18 +57,66 @@
                 })
                 .then(res => res.json())
                 .then(res => {
-                    // Reset input
-                    document.getElementById('detailName').value = '';
-                    document.getElementById('detailQty').value = '1';
-                    document.getElementById('detailPrice').value = '';
-                    document.getElementById('detailName').focus();
+                    if (res.success) {
+                        // Reset input
+                        document.getElementById('detailName').value = '';
+                        document.getElementById('detailQty').value = '1';
+                        document.getElementById('detailPrice').value = '';
+                        document.getElementById('detailName').focus();
 
-                    // Reload list
-                    loadDetails(expenseId);
+                        // Render list from response directly
+                        renderDetailsList(res.details);
+                    } else {
+                        alert('Gagal menambahkan item: ' + (res.message || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Terjadi kesalahan koneksi.');
                 });
             });
         }
     });
+
+    // Reusable Render Function
+    function renderDetailsList(data) {
+        const list = document.getElementById('detailItemsList');
+        list.innerHTML = '';
+        console.log('Rendering details list...');
+        console.log(data);
+        if(data.length === 0) {
+            list.innerHTML = '<li class="text-center text-muted py-3 small">Belum ada rincian item. Tambahkan sekarang!</li>';
+            return;
+        }
+
+        data.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom';
+            
+            const isChecked = item.is_checked ? 'checked' : '';
+            const textDecoration = item.is_checked ? 'text-decoration-line-through text-muted' : '';
+            const totalItem = item.qty * item.price;
+
+            li.innerHTML = `
+                <div class="d-flex align-items-center" style="gap: 10px;">
+                    <input class="form-check-input md-checkbox" type="checkbox" ${isChecked} 
+                        onchange="toggleCheckDetail(${item.id}, this.checked)">
+                    
+                    <div class="${textDecoration} detail-text-${item.id}">
+                        <div class="fw-semibold small">${item.name}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            ${item.qty} x ${new Intl.NumberFormat('id-ID').format(item.price)}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="fw-bold me-3 small">Rp ${new Intl.NumberFormat('id-ID').format(totalItem)}</span>
+                    <button onclick="deleteDetail(${item.id})" class="btn btn-sm text-danger p-0"><i class="bi bi-x-circle"></i></button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
 
     // Delete Detail
     function deleteDetail(id) {

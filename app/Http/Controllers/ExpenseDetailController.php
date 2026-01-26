@@ -7,35 +7,52 @@ use Illuminate\Http\Request;
 use App\Models\ExpenseDetail; 
 use App\Models\Expense;
 
+use Illuminate\Support\Facades\Log;
+
 class ExpenseDetailController extends Controller
 {
     // Ambil semua detail untuk 1 catatan
     public function index($id)
     {
+        Log::info("Fetching details for Expense ID: $id");
         $details = ExpenseDetail::where('expense_id', $id)->get();
+        Log::info("Found " . $details->count() . " details.");
         return response()->json($details);
     }
 
     // Tambah detail
+    // Tambah detail
     public function store(Request $request)
     {
-        $detail = ExpenseDetail::create([
-            'expense_id' => $request->note_id,
-            'name'       => $request->name,
-            'qty'        => $request->qty,
-            'price'      => $request->price,
-        ]);
+        try {
+            $validated = $request->validate([
+                'note_id' => 'required|exists:expenses,id',
+                'name' => 'required|string|max:255',
+                'qty' => 'required|integer|min:1',
+                'price' => 'required|numeric|min:0',
+            ]);
 
-        // Hitung ulang total untuk parent
-        $total = ExpenseDetail::where('expense_id', $request->note_id)
-            ->selectRaw('SUM(qty * price) as total')
-            ->value('total');
+            $detail = ExpenseDetail::create([
+                'expense_id' => $request->note_id,
+                'name'       => $request->name,
+                'qty'        => $request->qty,
+                'price'      => $request->price,
+                'is_checked' => false, // Explicitly set default
+            ]);
 
-        Expense::where('id', $request->note_id)
-            ->update(['amount' => $total]);
+            // Hitung ulang total untuk parent
+            $total = ExpenseDetail::where('expense_id', $request->note_id)
+                ->selectRaw('SUM(qty * price) as total')
+                ->value('total') ?? 0;
 
-        $details = ExpenseDetail::where('expense_id', $request->note_id)->get();
-        return response()->json(['details' => $details, 'total' => $total]);
+            Expense::where('id', $request->note_id)
+                ->update(['amount' => $total]);
+
+            $details = ExpenseDetail::where('expense_id', $request->note_id)->get();
+            return response()->json(['success' => true, 'details' => $details, 'total' => $total]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     // Hapus detail

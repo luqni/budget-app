@@ -144,6 +144,13 @@
             <h5 class="fw-bold m-0">{{ Auth::user()->name }}</h5>
         </div>
         <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-light text-warning shadow-sm rounded-circle position-relative" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"
+                data-bs-toggle="modal" data-bs-target="#quoteModal" id="quoteBtn">
+                <i class="bi bi-bell-fill"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="quoteBadge" style="font-size: 0.5rem; display: none;">
+                    1
+                </span>
+            </button>
            <!-- Global Month Selector -->
            <form action="{{ route('dashboard') }}" method="GET" id="monthFilterForm">
                <select id="monthSelect" class="form-select form-select-sm shadow-sm border-0 bg-white text-primary fw-bold" style="width:auto;" name="month" onchange="this.form.submit()">
@@ -215,12 +222,12 @@
     <div class="bg-white p-3 rounded-4 shadow-sm mb-3 border">
         <div class="d-flex align-items-center mb-2">
              <i class="bi bi-robot text-primary me-2 fs-4"></i>
-             <h6 class="m-0 fw-bold">AI Insight</h6>
+             <h6 class="m-0 fw-bold">Asisten Keuangan</h6>
         </div>
         <p class="text-muted small m-0">
             Pengeluaranmu bulan ini cukup terkendali. Cek statistik untuk detailnya!
         </p>
-        <button id="summaryButton" class="btn btn-sm btn-light text-primary mt-2 w-100 fw-bold">Tanya AI Selengkapnya</button>
+        <button id="summaryButton" class="btn btn-sm btn-light text-primary mt-2 w-100 fw-bold">Tanya Selengkapnya</button>
     </div>
 
     <!-- Recent Transactions Header -->
@@ -373,7 +380,7 @@
     </div>
     
     <div class="text-center mt-4 text-muted small opacity-50">
-        Versi 2.0 (Mobile First)
+        Versi 1.0 (Qonaah)
     </div>
 </div>
 
@@ -595,8 +602,136 @@
                     <input type="text" class="form-control border-0 bg-light" placeholder="Tulis pesan..." id="aiChatInput">
                     <button class="btn btn-primary rounded-end" id="aiChatSend"><i class="bi bi-send-fill"></i></button>
                 </div>
+
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Daily Quote Modal -->
+<div class="modal fade" id="quoteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="bi bi-chat-quote-fill text-warning fs-1"></i>
+                </div>
+                <h5 class="fw-bold mb-3">Renungan Hari Ini</h5>
+                @if(isset($todaysQuote))
+                    <blockquote class="blockquote mb-3">
+                        <p class="fs-6 fst-italic">"{{ $todaysQuote->content }}"</p>
+                    </blockquote>
+                    <figcaption class="blockquote-footer mt-2">
+                        <cite title="Source">{{ $todaysQuote->source ?? 'Unknown' }}</cite>
+                    </figcaption>
+                @else
+                    <p class="text-muted">Belum ada kutipan hari ini.</p>
+                @endif
+                <button type="button" class="btn btn-primary w-100 rounded-3 mt-3" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const lastSeenDate = localStorage.getItem('lastQuoteDate');
+        const todayDate = new Date().toISOString().split('T')[0];
+        const quoteBadge = document.getElementById('quoteBadge');
+        
+        // Initial Check
+        if (lastSeenDate !== todayDate) {
+            // New Quote available
+            if(quoteBadge) quoteBadge.style.display = 'block';
+
+            // Show Popup Automatically
+            const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
+            quoteModal.show();
+            
+            // Mark as seen when modal is closed or button clicked? 
+            // Better: Mark as seen immediately? Or keep badge until clicked properly?
+            // Requirement: "agar orang notice dan mau klik". So keep badge until they manually interact or maybe just once session?
+            // Let's stick to the "Popup shows once". 
+            // IF popup shows, we mark as seen.
+            // Wait, if popup shows, they "noticed".
+            // Maybe user wants badge to persist if they closed popup quickly?
+            // Let's allow badge to stay until they click the bell manually OR after popup.
+            
+            // Simple logic:
+            // 1. If not seen today -> Show Popup & Show Badge.
+            // 2. When Popup closes (or opens), mark as seen.
+            
+            localStorage.setItem('lastQuoteDate', todayDate);
+        } else {
+             // Already seen today.
+             if(quoteBadge) quoteBadge.style.display = 'none';
+        }
+
+        // Also, if simply relying on Popup to mark "seen", the badge disappears instantly.
+        // Let's NOT mark as seen automatically for the badge purpose? 
+        // User wants "agar notice dan mau klik".
+        // Let's decouple badge logic slightly?
+        // Actually, if popup already showed, they saw it.
+        // Let's assume user wants badge to exist IF there is a new Item.
+        // Since we rotate DAILY, "new item" = "not seen today".
+        
+        // REVISED LOGIC for better UX:
+        // 1. Popup shows on first visit.
+        // 2. Badge also shows on first visit. 
+        // 3. Badge should disappear only when the user explicitly clicks the bell? 
+        //    Or disappear with the popup? usually badge disappears after "reading".
+        
+        // Let's stick to simple: If popup showed, they read it. Badge might be redundant then?
+        // Maybe user ignored popup.
+        
+        // Let's try this:
+        // Badge shows if `lastQuoteDate != today`.
+        // We set `lastQuoteDate` ONLY when they "interact" effectively?
+        // The previous code set it immediately.
+        
+        // Let's keep it simple: Badge mirrors the "New" state.
+        // I will update the script to just persist the badge handling.
+        
+        // If we want badge to persist even after popup (so they can find it again), 
+        // actually standard behavior is: notification -> read -> badge gone.
+        // The popup IS reading it. So badge should go.
+        
+        // BUT user asked "agar orang notice dan mau klik". 
+        // Maybe they missed the popup.
+        
+        // Let's just make sure the badge logic is wired to the same condition.
+        // Since I added `style="display: none;"` default, I need to show it if condition met.
+    });
+    
+    // Better implementation:
+    // We already have logic that sets localStorage.
+    // If I want to permit the badge to be clicked, I should verify if the user click clears it?
+    
+    // Let's separate "Popup Seen" from "Badge Clicked"? No, keeps it complex.
+    // I will just ensure the badge appears IF the popup appears.
+    
+    // User Update: "tombol loncengnya pas di klik belum muncul data apa apa" -> Fixed in prev step.
+    // Now just visual.
+
+    // Let's refine the script to toggle badge.
+
+</script>
+
+<!-- Trakteer dynamic island -->
+<div id="trakteerContainer" style="position: fixed; bottom: 130px; left: 16px; z-index: 1040;">
+    <button onclick="document.getElementById('trakteerContainer').style.display='none'" 
+            class="btn btn-sm btn-light text-danger shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
+            style="position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; z-index: 1045; border: 1px solid #eee;">
+        <i class="bi bi-x mb-0" style="font-size: 16px;"></i>
+    </button>
+    <script type='text/javascript' src='https://edge-cdn.trakteer.id/js/trbtn-overlay.min.js?v=14-05-2025'></script>
+    <script type='text/javascript' class='troverlay'>
+        (function() {
+            var trbtnId = trbtnOverlay.init('Dukung Saya di Trakteer','#be1e2d','https://trakteer.id/luqni/tip/embed/modal','https://cdn.trakteer.id/images/mix/coffee.png','40','inline');
+            trbtnOverlay.draw(trbtnId);
+        })();
+    </script>
+</div>
     </div>
 </div>
 

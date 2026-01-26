@@ -8,6 +8,7 @@ use App\Models\ExpenseDetail;
 use App\Models\MonthlyIncome;
 use App\Models\Category;
 use App\Models\Income;
+use App\Models\Quote;
 
 use DB;
 use Auth;
@@ -18,6 +19,12 @@ class DashboardController extends Controller
     {
         $filterMonth = $request->query('month') ?? now()->format('Y-m');
         $userId = Auth::id();
+        
+        // Daily Quote
+        $todaysQuote = Quote::where('is_active_for_date', now()->format('Y-m-d'))->first();
+        if (!$todaysQuote) {
+            $todaysQuote = Quote::inRandomOrder()->first();
+        }
 
         // Query expense
         $query = Expense::where('user_id', $userId)
@@ -27,7 +34,8 @@ class DashboardController extends Controller
                     $q->where('is_checked', true);
                 }
             ], DB::raw('qty * price'))
-            ->orderBy('month', 'desc');
+            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc');
 
         if ($filterMonth) {
             $query->where('month', $filterMonth);
@@ -92,6 +100,7 @@ class DashboardController extends Controller
             'months' => $months,
             'selectedMonth' => $filterMonth,
             'categories' => $categories,
+            'todaysQuote' => $todaysQuote,
         ]);
     }
 
