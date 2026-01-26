@@ -30,62 +30,7 @@
             .catch(err => console.error('Fetch error:', err));
     }
 
-    // Add New Detail
-    document.addEventListener("DOMContentLoaded", function () {
-        const addDetailForm = document.getElementById('addDetailForm');
-        if(addDetailForm) {
-            addDetailForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const expenseId = document.getElementById('currentExpenseId').value;
-                const name = document.getElementById('detailName').value;
-                const qty = document.getElementById('detailQty').value;
-                const price = document.getElementById('detailPrice').value;
 
-                fetch('/expense/detail', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        note_id: expenseId,
-                        name: name,
-                        qty: qty,
-                        price: price
-                    })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
-                        // Reset input
-                        document.getElementById('detailName').value = '';
-                        document.getElementById('detailQty').value = '1';
-                        document.getElementById('detailPrice').value = '';
-                        document.getElementById('detailName').focus();
-
-                        // Render list from response directly
-                        renderDetailsList(res.details);
-                        
-                        // --- REAL-TIME UPDATES ---
-                        if(window.refreshCardSummary) window.refreshCardSummary();
-                        if(window.reloadCharts) window.reloadCharts();
-                        
-                        // Update List Item Amount in DOM
-                        if(res.total !== undefined) {
-                            updateListItemAmount(expenseId, res.total);
-                        }
-                    } else {
-                        alert('Gagal menambahkan item: ' + (res.message || 'Unknown error'));
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Terjadi kesalahan koneksi.');
-                });
-            });
-        }
-    });
 
     // Reusable Render Function
     function renderDetailsList(data) {
@@ -119,39 +64,14 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span class="fw-bold me-3 small">Rp ${new Intl.NumberFormat('id-ID').format(totalItem)}</span>
-                    <button onclick="deleteDetail(${item.id})" class="btn btn-sm text-danger p-0"><i class="bi bi-x-circle"></i></button>
+                    <span class="fw-bold small">Rp ${new Intl.NumberFormat('id-ID').format(totalItem)}</span>
                 </div>
             `;
             list.appendChild(li);
         });
     }
 
-    // Delete Detail
-    function deleteDetail(id) {
-        if(!confirm('Hapus item ini?')) return;
 
-        fetch(`/expense/detail/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(res => res.json())
-        .then(res => {
-            loadDetails(document.getElementById('currentExpenseId').value);
-            
-            // --- REAL-TIME UPDATES ---
-             if(window.refreshCardSummary) window.refreshCardSummary();
-             if(window.reloadCharts) window.reloadCharts();
-             
-             // Update List Item Amount
-             const expenseId = document.getElementById('currentExpenseId').value;
-             if(res.total !== undefined) {
-                 updateListItemAmount(expenseId, res.total);
-             }
-        });
-    }
 
     // Toggle Check
     function toggleCheckDetail(id, isChecked) {
@@ -202,18 +122,5 @@
         });
     }
 
-    // Helper to update List Item Amount
-    function updateListItemAmount(id, newAmount) {
-        const li = document.querySelector(`li[data-id="${id}"]`);
-        if(li) {
-            // Update data attribute
-            li.setAttribute('data-amount', newAmount);
-            
-            // Update text (find .text-danger)
-            const amountSpan = li.querySelector('.text-danger');
-            if(amountSpan) {
-                amountSpan.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(newAmount);
-            }
-        }
-    }
+
 </script>

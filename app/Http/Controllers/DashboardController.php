@@ -84,6 +84,13 @@ class DashboardController extends Controller
             ->orderBy('month', 'desc')
             ->pluck('month');
 
+        // Ensure current month is always available
+        $currentMonth = now()->format('Y-m');
+        if (!$months->contains($currentMonth)) {
+            $months->push($currentMonth);
+            $months = $months->sortDesc();
+        }
+
         $categories = Category::all();
 
         return view('dashboard', [
@@ -109,17 +116,35 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'note' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0',
             'month' => 'required|date_format:Y-m',
             'category_id' => 'nullable|exists:categories,id',
+            'details' => 'nullable|array',
+            'details.*.name' => 'required|string',
+            'details.*.qty' => 'required|integer|min:1',
+            'details.*.price' => 'required|numeric|min:0',
         ]);
 
         $expense = Expense::create([
             'user_id' => Auth::id(), // ✅ Simpan user ID
             'note' => $data['note'],
+            'amount' => $data['amount'],
             'month' => $data['month'],
             'category_id' => $data['category_id'] ?? null,
-            'amount' => 0,
         ]);
+
+        // Handle Details
+        if (!empty($data['details'])) {
+            foreach ($data['details'] as $detail) {
+                \App\Models\ExpenseDetail::create([
+                    'expense_id' => $expense->id,
+                    'name' => $detail['name'],
+                    'qty' => $detail['qty'],
+                    'price' => $detail['price'],
+                    'is_checked' => true // Default checked
+                ]);
+            }
+        }
 
         return response()->json($expense);
     }
@@ -127,19 +152,40 @@ class DashboardController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $data = $request->validate([
             'note' => 'required|string',
+            'amount' => 'required|numeric|min:0',
             'category_id' => 'nullable|exists:categories,id',
-            // 'amount' => 'required|numeric|min:1',
+            'details' => 'nullable|array',
+            'details.*.name' => 'required|string',
+            'details.*.qty' => 'required|integer|min:1',
+            'details.*.price' => 'required|numeric|min:0',
         ]);
 
         $expense = Expense::where('user_id', Auth::id())->findOrFail($id); // ✅ Cegah edit data user lain
 
         $expense->update([
             'note' => $request->note,
+            'amount' => $request->amount,
             'category_id' => $request->category_id,
-            // 'amount' => $request->amount,
         ]);
+
+        // Sync Details if provided (Replace Strategy)
+        if (isset($data['details'])) {
+            // Delete existing
+            $expense->details()->delete();
+            
+            // Re-create
+            foreach ($data['details'] as $detail) {
+                \App\Models\ExpenseDetail::create([
+                    'expense_id' => $expense->id,
+                    'name' => $detail['name'],
+                    'qty' => $detail['qty'],
+                    'price' => $detail['price'],
+                    'is_checked' => true // Default checked on edit sync? Yes.
+                ]);
+            }
+        }
 
         return response()->json($expense);
     }
@@ -221,7 +267,7 @@ class DashboardController extends Controller
             ->get();
 
         $totalExpense = $data->sum('total');
-
+        
         $formatted = $data->map(function ($item) use ($totalExpense) {
             $percentage = $totalExpense > 0 ? round(($item->total / $totalExpense) * 100, 1) : 0;
             return [
@@ -325,14 +371,10 @@ class DashboardController extends Controller
         $filterMonth = $request->query('month');
         if (!$filterMonth) $filterMonth = now()->format('Y-m');
 
-        // Total Realisasi
-        $realizationTotal = ExpenseDetail::when($filterMonth, function($q) use ($filterMonth) {
-                $q->whereHas('expense', fn($e)=>$e->where('month', $filterMonth));
-            })
-            ->whereHas('expense', fn($e)=>$e->where('user_id', Auth::id())) // ✅ Filter by user
-            ->where('is_checked', true)
-            ->selectRaw('SUM(qty * price) as total')
-            ->value('total') ?? 0;
+        // Total Realisasi (Synced to Expense Table)
+        $realizationTotal = Expense::where('user_id', $userId)
+            ->when($filterMonth, fn($q)=>$q->where('month', $filterMonth))
+            ->sum('amount');
 
 
         return response()->json($realizationTotal);

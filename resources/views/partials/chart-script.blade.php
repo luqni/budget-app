@@ -11,10 +11,16 @@
         let ctxCatElement = document.getElementById('categoryChart');
         
         window.expenseChart = null; 
+        window.rincianKategoriChart = null;
         window.categoryChart = null;
 
         // Initial Load
         if(ctxElement) loadChartData(ctxElement.getContext('2d'), currentMonth);
+        
+        // New Chart Load
+        let ctxRincian = document.getElementById('rincianKategoriChart');
+        if(ctxRincian) loadRincianKategoriChart(ctxRincian.getContext('2d'), currentMonth);
+
         if(ctxCatElement) loadCategoryChart(ctxCatElement.getContext('2d'), currentMonth);
 
         // Listener: Month Filter Change
@@ -22,6 +28,10 @@
             monthFilterInput.addEventListener('change', function(e) {
                 currentMonth = e.target.value;
                 if(ctxElement) loadChartData(ctxElement.getContext('2d'), currentMonth);
+                // Check if new chart exists
+                let ctxRincian = document.getElementById('rincianKategoriChart');
+                if(ctxRincian) loadRincianKategoriChart(ctxRincian.getContext('2d'), currentMonth);
+                
                 if(ctxCatElement) loadCategoryChart(ctxCatElement.getContext('2d'), currentMonth);
             });
         }
@@ -88,7 +98,70 @@
                 })
                 .catch(error => console.error('Error loading chart:', error));
         }
-        console.log(expenseChart);
+
+
+        // 1.5 New Logic for Rincian Kategori Chart (Percentage)
+        function loadRincianKategoriChart(context, month) {
+            if(!context) return;
+            fetch(`{{ route('chart.category.data') }}?month=${month}`)
+                .then(res => res.json())
+                .then(data => {
+                    const labels = data.map(d => d.name);
+                    const values = data.map(d => d.total);
+                    const colors = data.map(d => d.color);
+
+                    if (window.rincianKategoriChart) {
+                        window.rincianKategoriChart.destroy();
+                    }
+                
+                    window.rincianKategoriChart = new Chart(context, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: values,
+                                backgroundColor: colors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff',
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        usePointStyle: true,
+                                        boxWidth: 8,
+                                        padding: 15,
+                                        font: { size: 11 }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            let value = context.raw || 0;
+                                            let total = context.chart._metasets[context.datasetIndex].total;
+                                            let percentage = Math.round((value / total) * 100) + '%';
+                                            return label + 'Rp ' + new Intl.NumberFormat('id-ID').format(value) + ' (' + percentage + ')';
+                                        }
+                                    }
+                                }
+                            },
+                            layout: {
+                                padding: 20
+                            }
+                        }
+                    });
+                });
+        }
         // 2. Category Doughnut & List Breakdown
         function loadCategoryChart(context, month) {
             if(!context) return;
@@ -188,6 +261,51 @@
         // --- ADD EXPENSE LOGIC ---
         const noteForm = document.getElementById('noteForm');
         
+        // Dynamic Rows Logic
+        if(document.getElementById('addDetailRowBtn')) {
+            document.getElementById('addDetailRowBtn').addEventListener('click', function() {
+                const list = document.getElementById('newExpenseDetailsList');
+                const li = document.createElement('li');
+                li.className = 'list-group-item p-2 border rounded mb-2 bg-white';
+                li.innerHTML = `
+                    <div class="d-flex gap-2 mb-1">
+                        <input type="text" class="form-control form-control-sm detail-name" placeholder="Nama Item" required>
+                        <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.closest('li').remove(); calculateTotal();"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <input type="number" class="form-control form-control-sm detail-qty" placeholder="Qty" style="width: 70px;" value="1" min="1" required oninput="calculateTotal()">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text border-0 bg-light">Rp</span>
+                            <input type="number" class="form-control detail-price" placeholder="Harga" required oninput="calculateTotal()">
+                        </div>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        window.calculateTotal = function() {
+            let total = 0;
+            const rows = document.querySelectorAll('#newExpenseDetailsList li');
+            
+            if (rows.length > 0) {
+                 rows.forEach(row => {
+                    const qty = parseFloat(row.querySelector('.detail-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.detail-price').value) || 0;
+                    total += (qty * price);
+                });
+                
+                const amountInput = document.getElementById('amountInput');
+                amountInput.value = total;
+                amountInput.readOnly = true;
+                amountInput.classList.add('bg-light');
+            } else {
+                const amountInput = document.getElementById('amountInput');
+                amountInput.readOnly = false;
+                amountInput.classList.remove('bg-light');
+            }
+        };
+
         if(noteForm) {
             noteForm.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -195,7 +313,7 @@
 
                 // Get values
                 const noteTextEl = document.getElementById('noteText');
-                const amountEl = document.getElementById('amountInput'); // New ID
+                const amountEl = document.getElementById('amountInput'); 
                 const categoryEl = document.getElementById('noteCategory');
                 const monthEl = document.getElementById('noteMonth');
 
@@ -206,20 +324,18 @@
                     return;
                 }
                 
-                // Parse amount (remove non-digits if user typed formatting)
-                // Assuming simple input for now, but better to sanitize
-                // The new UI has separate amount input.
                 const noteText = noteTextEl.value;
                 const rawAmount = amountEl.value.replace(/\D/g, ''); 
-                // We combine amount + note text into one strings for legacy controller or
-                // ideally we update controller to accept amount separately.
-                // CURRENT CONTROLLER: expects "50000 beli nasi" format in 'note' OR
-                // if we updated backend? We haven't. Controller parses numbers from 'note'.
-                // So we arguably should append amount to note text if backend expects it.
-                // Let's check Controller logic... Controller uses `preg_match_all('!\d+!', $request->note, $matches)`
-                // So we MUST include the number in the note string sent to server.
                 
-                const finalNote = rawAmount + ' ' + noteText;
+                // Collect Details
+                let details = [];
+                document.querySelectorAll('#newExpenseDetailsList li').forEach(row => {
+                    details.push({
+                        name: row.querySelector('.detail-name').value,
+                        qty: row.querySelector('.detail-qty').value,
+                        price: row.querySelector('.detail-price').value
+                    });
+                });
 
                 fetch('{{ route('expenses.store') }}', {
                     method: 'POST',
@@ -228,9 +344,11 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
-                        note: finalNote,
+                        note: noteText,
+                        amount: rawAmount,
                         month: monthEl.value,
-                        category_id: categoryEl.value
+                        category_id: categoryEl.value,
+                        details: details
                     })
                 })
                 .then(res => res.json())
@@ -272,23 +390,109 @@
             }
             
             // EDIT
+            // EDIT
             if(target.closest('.edit-btn')) {
-                const li = target.closest('li');
-                const id = li.dataset.id;
-                const note = li.dataset.note;
-                const catId = li.dataset.categoryId;
-                const amount = li.dataset.amount;
-                
-                document.getElementById('editExpenseId').value = id;
-                document.getElementById('editNoteText').value = note; // Note: this includes amount text currently
-                // Ideally parse out amount, but for now user edits raw text "50000 makan"
-                document.getElementById('editNoteCategory').value = catId;
-                
-                const editModal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
-                editModal.show();
+                openEditExpense(target.closest('li'));
             }
         });
+
+        // Global Edit Function
+        window.openEditExpense = function(li) {
+            const id = li.dataset.id;
+            const note = li.dataset.note;
+            const catId = li.dataset.categoryId;
+            const amount = li.dataset.amount;
+            
+            document.getElementById('editExpenseId').value = id;
+            document.getElementById('editNoteText').value = note; 
+            document.getElementById('editAmountInput').value = amount;
+            document.getElementById('editNoteCategory').value = catId;
+            
+            // Fetch Details Logic
+            const list = document.getElementById('editExpenseDetailsList');
+            list.innerHTML = '<li class="text-center text-muted py-2 small">Memuat rincian...</li>';
+            
+            fetch(`/expense/${id}/details`)
+                .then(res => res.json())
+                .then(details => {
+                    list.innerHTML = ''; // Clear loading
+                    if(details && details.length > 0) {
+                        details.forEach(d => {
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item p-2 border rounded mb-2 bg-white';
+                            li.innerHTML = `
+                                <div class="d-flex gap-2 mb-1">
+                                    <input type="text" class="form-control form-control-sm detail-name" placeholder="Nama Item" value="${d.name}" required>
+                                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.closest('li').remove(); calculateTotalEdit();"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <input type="number" class="form-control form-control-sm detail-qty" placeholder="Qty" style="width: 70px;" value="${d.qty}" min="1" required oninput="calculateTotalEdit()">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text border-0 bg-light">Rp</span>
+                                        <input type="number" class="form-control detail-price" placeholder="Harga" value="${parseInt(d.price)}" required oninput="calculateTotalEdit()">
+                                    </div>
+                                </div>
+                            `;
+                            list.appendChild(li);
+                        });
+                        calculateTotalEdit(); // Ensure readonly and sum check
+                    } else {
+                        // No details, manual amount allowed
+                        document.getElementById('editAmountInput').readOnly = false;
+                        document.getElementById('editAmountInput').classList.remove('bg-light');
+                    }
+                });
+
+            
+            const editModal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+            editModal.show();
+        };
         
+        // Dynamic Rows Logic (Edit)
+        if(document.getElementById('addDetailRowBtnEdit')) {
+            document.getElementById('addDetailRowBtnEdit').addEventListener('click', function() {
+                const list = document.getElementById('editExpenseDetailsList');
+                const li = document.createElement('li');
+                li.className = 'list-group-item p-2 border rounded mb-2 bg-white';
+                li.innerHTML = `
+                    <div class="d-flex gap-2 mb-1">
+                        <input type="text" class="form-control form-control-sm detail-name" placeholder="Nama Item" required>
+                        <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.closest('li').remove(); calculateTotalEdit();"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <input type="number" class="form-control form-control-sm detail-qty" placeholder="Qty" style="width: 70px;" value="1" min="1" required oninput="calculateTotalEdit()">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text border-0 bg-light">Rp</span>
+                            <input type="number" class="form-control detail-price" placeholder="Harga" required oninput="calculateTotalEdit()">
+                        </div>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+        
+        window.calculateTotalEdit = function() {
+            let total = 0;
+            const rows = document.querySelectorAll('#editExpenseDetailsList li');
+            
+            if (rows.length > 0) {
+                 rows.forEach(row => {
+                    const qty = parseFloat(row.querySelector('.detail-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.detail-price').value) || 0;
+                    total += (qty * price);
+                });
+                
+                const amountInput = document.getElementById('editAmountInput');
+                amountInput.value = total;
+                amountInput.readOnly = true;
+                amountInput.classList.add('bg-light');
+            } else {
+                const amountInput = document.getElementById('editAmountInput');
+                amountInput.readOnly = false;
+                amountInput.classList.remove('bg-light');
+            }
+        };
+
         // Handle Edit Submit
         const editForm = document.getElementById('editExpenseForm');
         if(editForm) {
@@ -297,16 +501,27 @@
                 showLoader();
                 const id = document.getElementById('editExpenseId').value;
                 const note = document.getElementById('editNoteText').value;
+                const amount = document.getElementById('editAmountInput').value;
                 const catId = document.getElementById('editNoteCategory').value;
                 
+                // Collect Details
+                let details = [];
+                document.querySelectorAll('#editExpenseDetailsList li').forEach(row => {
+                    details.push({
+                        name: row.querySelector('.detail-name').value,
+                        qty: row.querySelector('.detail-qty').value,
+                        price: row.querySelector('.detail-price').value
+                    });
+                });
+
                 fetch(`/expenses/${id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ _method: 'PUT', note: note, category_id: catId })
+                    body: JSON.stringify({ _method: 'PUT', note: note, amount: amount, category_id: catId, details: details })
                 })
                 .then(res => res.json())
                 .then(data => {
-                    location.reload(); // Simplest way to sync all lists/charts/amounts for Edit
+                    location.reload(); 
                 })
                 .finally(() => hideLoader());
             });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qanaah-v3';
+const CACHE_NAME = 'qanaah-v4';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',
@@ -34,11 +34,11 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch Event: Network First for HTML, Cache First for assets
+// Fetch Event
 self.addEventListener('fetch', (event) => {
     const requestUrl = new URL(event.request.url);
 
-    // Strategy 1: For HTML pages (Dashboard, Home) -> Network First, fall back to Cache
+    // Strategy 1: HTML pages (Navigation) -> Network First
     if (event.request.mode === 'navigate' || event.request.destination === 'document') {
         event.respondWith(
             fetch(event.request)
@@ -54,7 +54,6 @@ self.addEventListener('fetch', (event) => {
                             if (cachedResponse) {
                                 return cachedResponse;
                             }
-                            // Optional: Return a specific "offline.html" if not in cache
                             return caches.match('/');
                         });
                 })
@@ -62,26 +61,36 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Strategy 2: For Static Assets (CSS, JS, Images, Fonts) -> Cache First, fall back to Network
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-            return fetch(event.request).then((networkResponse) => {
-                // Don't cache partial/error responses
-                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && networkResponse.type !== 'cors') {
-                    return networkResponse;
+    // Strategy 2: Static Assets (Styles, Scripts, Images, Fonts) -> Cache First
+    const staticDestinations = ['style', 'script', 'image', 'font'];
+    if (staticDestinations.includes(event.request.destination)) {
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-
-                // Cache new assets dynamically
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
+                return fetch(event.request).then((networkResponse) => {
+                    // Don't cache partial/error responses
+                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && networkResponse.type !== 'cors') {
+                        return networkResponse;
+                    }
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                    return networkResponse;
                 });
+            })
+        );
+        return;
+    }
 
-                return networkResponse;
-            });
+    // Strategy 3: Default (API calls, etc.) -> Network First
+    // We do NOT cache API calls to ensure data is fresh.
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Optional: return cached if available (stale-while-revalidate concept) or just fail
+            return caches.match(event.request);
         })
     );
 });

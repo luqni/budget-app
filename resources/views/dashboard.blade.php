@@ -286,7 +286,7 @@
                 data-category-id="{{ $exp->category_id }}"
                 data-note="{{ $exp->note }}"
                 data-amount="{{ $exp->amount }}"
-                onclick="if(!event.target.closest('button')) openDetailModal({{ $exp->id }}, '{{ addslashes($exp->note) }}')">
+                onclick="if(!event.target.closest('button')) openEditExpense(this)">
                 <div class="text-section flex-grow-1">
                     <div class="d-flex align-items-center mb-1">
                         @if($exp->category)
@@ -303,9 +303,9 @@
                 <div class="text-end ms-2">
                     <span class="fw-bold text-danger d-block mb-1">Rp {{ number_format($exp->amount, 0, ',', '.') }}</span>
                     <div>
-                         <button class="btn btn-sm btn-outline-primary p-0 px-2 me-1 rounded-pill small" style="font-size: 0.7rem;" onclick="openDetailModal({{ $exp->id }}, '{{ addslashes($exp->note) }}')">
+                         <!-- <button class="btn btn-sm btn-outline-primary p-0 px-2 me-1 rounded-pill small" style="font-size: 0.7rem;" onclick="openDetailModal({{ $exp->id }}, '{{ addslashes($exp->note) }}')">
                             <i class="bi bi-list-check"></i> Isi Item
-                         </button>
+                         </button> -->
                          <button class="btn btn-sm btn-link text-muted p-0 edit-btn"><i class="bi bi-pencil-square"></i></button>
                          <button class="btn btn-sm btn-link text-danger p-0 ms-2 delete-btn"><i class="bi bi-trash"></i></button>
                     </div>
@@ -325,7 +325,7 @@
         <div class="card-body">
             <h6 class="card-title text-center text-muted small mb-3">Pengeluaran per Kategori</h6>
             <div style="height: 250px; position: relative;">
-                 <canvas id="expenseChart"></canvas>
+                 <canvas id="rincianKategoriChart"></canvas>
             </div>
         </div>
     </div>
@@ -434,6 +434,22 @@
                         <textarea id="noteText" class="form-control bg-light border-0" rows="2" placeholder="Beli Nasi Goreng..." required></textarea>
                     </div>
 
+                    <!-- Shopping List Section -->
+                    <div class="mb-3 border rounded-3 p-2 bg-aliceblue">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-primary"><i class="bi bi-cart-plus me-1"></i> Input Rincian Belanja</span>
+                        </div>
+                        
+                        <div id="shoppingListSection">
+                            <ul class="list-group list-group-flush mb-2" id="newExpenseDetailsList">
+                                <!-- Dynamic Rows Here -->
+                            </ul>
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100 border-dashed" id="addDetailRowBtn">
+                                <i class="bi bi-plus-circle"></i> Tambah Item
+                            </button>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3 fw-bold mt-2">Simpan</button>
                 </form>
             </div>
@@ -455,10 +471,13 @@
                     @csrf
                     <input type="hidden" id="editExpenseId">
                     <div class="mb-3">
+                        <label class="form-label small text-muted">Nominal (Rp)</label>
+                        <input type="number" id="editAmountInput" class="form-control" placeholder="0" required>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label small text-muted">Catatan</label>
                         <input type="text" id="editNoteText" class="form-control" required>
                     </div>
-                    <!-- Add Amount Edit here too if we want full editing power -->
                     <div class="mb-3">
                         <label class="form-label small text-muted">Kategori</label>
                         <select id="editNoteCategory" class="form-select">
@@ -467,6 +486,22 @@
                                 <option value="{{ $cat->id }}">{{ $cat->icon }} {{ $cat->name }}</option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <!-- Shopping List Section (Edit) -->
+                    <div class="mb-3 border rounded-3 p-2 bg-aliceblue">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-primary"><i class="bi bi-cart-check me-1"></i> Edit Rincian Belanja</span>
+                        </div>
+                        
+                        <div id="shoppingListSectionEdit">
+                            <ul class="list-group list-group-flush mb-2" id="editExpenseDetailsList">
+                                <!-- Dynamic Rows Here -->
+                            </ul>
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100 border-dashed" id="addDetailRowBtnEdit">
+                                <i class="bi bi-plus-circle"></i> Tambah Item
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 rounded-3">Simpan Perubahan</button>
                 </form>
@@ -786,19 +821,7 @@
                 <input type="hidden" id="currentExpenseId">
                 
                 <!-- Add New Item Form -->
-                <form id="addDetailForm" class="mb-4 bg-light p-3 rounded-3">
-                    <div class="d-flex gap-2 mb-2">
-                        <input type="text" id="detailName" class="form-control border-0 shadow-sm" placeholder="Nama Item (mis: Beras)" required>
-                        <input type="number" id="detailQty" class="form-control border-0 shadow-sm text-center" style="width: 70px;" value="1" min="1" required>
-                    </div>
-                    <div class="d-flex gap-2">
-                         <div class="input-group shadow-sm border-0 rounded-3 overflow-hidden">
-                            <span class="input-group-text border-0 bg-white text-muted small">Rp</span>
-                            <input type="number" id="detailPrice" class="form-control border-0" placeholder="Harga Satuan" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary rounded-3 px-3"><i class="bi bi-plus-lg"></i></button>
-                    </div>
-                </form>
+
 
                 <!-- List Items -->
                 <h6 class="fw-bold mb-3 small text-muted">DAFTAR BELANJA</h6>
@@ -829,8 +852,22 @@
         if(tabId === 'profile') navItems[3].classList.add('active');
 
         // Special case for Stats to re-render chart if needed
-        if(tabId === 'stats' && window.expenseChart) {
-            window.expenseChart.resize();
+        // Special case for Stats to re-render chart if needed
+        if(tabId === 'stats') {
+            setTimeout(() => {
+                if(window.expenseChart) {
+                    window.expenseChart.resize();
+                    window.expenseChart.update();
+                }
+                if(window.rincianKategoriChart) {
+                    window.rincianKategoriChart.resize();
+                    window.rincianKategoriChart.update();
+                }
+                if(window.categoryChart) {
+                    window.categoryChart.resize();
+                    window.categoryChart.update();
+                }
+            }, 100);
         }
         
         // Save state
