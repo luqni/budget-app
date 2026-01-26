@@ -235,25 +235,7 @@
                 })
                 .then(res => res.json())
                 .then(data => {
-                    // Update Lists
-                    prependNoteToList(data);
-                    
-                    // Reset Form
-                    noteTextEl.value = '';
-                    amountEl.value = '';
-                    // categoryEl.value = ''; // Keep category for convenience? Or reset. Resetting.
-                    categoryEl.value = '';
-                    
-                    // Close Modal
-                    const modalEl = document.getElementById('addExpenseModal');
-                    if(modalEl) {
-                        const modal = bootstrap.Modal.getInstance(modalEl);
-                        if(modal) modal.hide();
-                    }
-
-                    // Refresh Views
-                    if(ctxElement) loadChartData(ctxElement.getContext('2d'));
-                    refreshCardSummary(); // Update balance cards
+                    window.location.reload();
                 })
                 .catch(err => {
                     console.error(err);
@@ -263,60 +245,7 @@
             });
         }
 
-        function prependNoteToList(data) {
-            const html = `
-                <li class="list-group-item d-flex justify-content-between align-items-start mb-2" 
-                    data-id="${data.id}" 
-                    data-category-id="${data.category_id}" 
-                    data-note="${data.note}" 
-                    data-amount="${data.amount}">
-                    <div class="text-section flex-grow-1">
-                        <div class="d-flex align-items-center mb-1">
-                            ${data.category ? `<span class="badge bg-light text-dark border me-2 rounded-pill fw-normal">${data.category.icon} ${data.category.name}</span>` : ''}
-                            <span class="note-date text-muted small" style="font-size:0.75rem;">Now</span>
-                        </div>
-                        <span class="note-text fw-semibold text-dark">${data.note}</span> 
-                    </div>
-                    <div class="text-end ms-2">
-                        <span class="fw-bold text-danger d-block mb-1">Rp ${parseInt(data.amount).toLocaleString('id-ID')}</span>
-                        <div>
-                             <button class="btn btn-sm btn-link text-muted p-0 edit-btn"><i class="bi bi-pencil-square"></i></button>
-                             <button class="btn btn-sm btn-link text-danger p-0 ms-2 delete-btn"><i class="bi bi-trash"></i></button>
-                        </div>
-                    </div>
-                </li>
-            `;
-            
-            // Add to Main History List
-            const list = document.getElementById('notesList');
-            const emptyState = document.getElementById('emptyState');
-            if(list) {
-                if(emptyState) emptyState.remove(); // Remove empty state if present
-                list.insertAdjacentHTML('afterbegin', html);
-            }
-            
-            // Add to Recent List (Home Tab)
-            const recentList = document.getElementById('recentNotesList');
-            if(recentList) {
-                // Remove placeholder if present
-                if(recentList.querySelector('.text-center')) recentList.innerHTML = '';
-                
-                // Add new item
-                let recentHtml = html; 
-                // Strip buttons for recent view
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                const buttons = tempDiv.querySelector('.text-end div');
-                if(buttons) buttons.remove();
-                
-                recentList.insertAdjacentHTML('afterbegin', tempDiv.innerHTML);
-                
-                // Limit to 3 items
-                while(recentList.children.length > 3) {
-                    recentList.removeChild(recentList.lastChild);
-                }
-            }
-        }
+
 
         // --- EDIT / DELETE LOGIC ---
         // Delegate events from document or main wrapper to handle dynamic items
@@ -337,16 +266,7 @@
                         },
                         body: JSON.stringify({ _method: 'DELETE' })
                     }).then(() => {
-                        li.remove();
-                        // Also remove from recent list if present
-                        // Re-fetch or simple DOM removal is hard for synced lists without ID match
-                        // But since we reload page often or user simple flow, maybe just refresh totals
-                        // To be precise: find in other list
-                        const otherLi = document.querySelector(`#recentNotesList li[data-id="${id}"], #notesList li[data-id="${id}"]`);
-                        if(otherLi) otherLi.remove();
-                        
-                        refreshCardSummary();
-                        if(ctxElement) loadChartData(ctxElement.getContext('2d'));
+                        window.location.reload();
                     }).finally(() => hideLoader());
                 }
             }
@@ -503,6 +423,18 @@
             chatContent.insertAdjacentHTML('beforeend', html);
             chatContent.scrollTop = chatContent.scrollHeight;
         }
+
+        // --- EXPOSE GLOBAL FUNCTIONS ---
+        window.reloadCharts = function() {
+            const month = document.getElementById('statsMonthFilter')?.value || new Date().toISOString().slice(0, 7);
+            const ctx = document.getElementById('expenseChart')?.getContext('2d');
+            if(ctx) loadChartData(ctx, month);
+            
+            const ctxCat = document.getElementById('categoryChart')?.getContext('2d');
+            if(ctxCat) loadCategoryChart(ctxCat, month);
+        };
+        
+        window.refreshCardSummary = refreshCardSummary;
 
     });
 </script>

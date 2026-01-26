@@ -282,7 +282,10 @@
          @endif
 
          @foreach ($expenses as $exp)
-            <li class="list-group-item d-flex justify-content-between align-items-start mb-2 cursor-pointer list-item-hover" 
+            <li class="list-group-item d-flex justify-content-between align-items-start mb-2 cursor-pointer list-item-hover"                                                                                                                                                                                                                                                                                                                                                                                                     data-id="{{ $exp->id }}"
+                data-category-id="{{ $exp->category_id }}"
+                data-note="{{ $exp->note }}"
+                data-amount="{{ $exp->amount }}"
                 onclick="if(!event.target.closest('button')) openDetailModal({{ $exp->id }}, '{{ addslashes($exp->note) }}')">
                 <div class="text-section flex-grow-1">
                     <div class="d-flex align-items-center mb-1">
@@ -300,6 +303,9 @@
                 <div class="text-end ms-2">
                     <span class="fw-bold text-danger d-block mb-1">Rp {{ number_format($exp->amount, 0, ',', '.') }}</span>
                     <div>
+                         <button class="btn btn-sm btn-outline-primary p-0 px-2 me-1 rounded-pill small" style="font-size: 0.7rem;" onclick="openDetailModal({{ $exp->id }}, '{{ addslashes($exp->note) }}')">
+                            <i class="bi bi-list-check"></i> Isi Item
+                         </button>
                          <button class="btn btn-sm btn-link text-muted p-0 edit-btn"><i class="bi bi-pencil-square"></i></button>
                          <button class="btn btn-sm btn-link text-danger p-0 ms-2 delete-btn"><i class="bi bi-trash"></i></button>
                     </div>

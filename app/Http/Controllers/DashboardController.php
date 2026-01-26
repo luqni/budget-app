@@ -309,6 +309,7 @@ class DashboardController extends Controller
     public function getDataAlokasi(Request $request){
         $userId = Auth::id();
         $filterMonth = $request->query('month');
+        if (!$filterMonth) $filterMonth = now()->format('Y-m');
 
         $expenseTotal = Expense::where('user_id', $userId)
             ->when($filterMonth, fn($q)=>$q->where('month',$filterMonth))
@@ -322,6 +323,7 @@ class DashboardController extends Controller
     public function getDataRealisasi(Request $request){
         $userId = Auth::id();
         $filterMonth = $request->query('month');
+        if (!$filterMonth) $filterMonth = now()->format('Y-m');
 
         // Total Realisasi
         $realizationTotal = ExpenseDetail::when($filterMonth, function($q) use ($filterMonth) {
@@ -337,9 +339,29 @@ class DashboardController extends Controller
 
     }
 
-    public function getIncome(){
-        $income = Auth::user()->income ?? 0;
+    public function getIncome(Request $request){
+        $userId = Auth::id();
+        $filterMonth = $request->query('month');
+        if (!$filterMonth) $filterMonth = now()->format('Y-m');
+        
+        \Log::info("getIncome: User $userId, Month $filterMonth");
 
-        return response()->json($income);
+        // === Logic matches index() ===
+        $monthlyIncome = MonthlyIncome::where('user_id', $userId)
+            ->where('month', $filterMonth)
+            ->value('income') ?? 0;
+            
+        \Log::info("getIncome: Monthly $monthlyIncome");
+
+        $additionalIncomeTotal = Income::where('user_id', $userId)
+            ->where('month', $filterMonth)
+            ->sum('amount');
+            
+        \Log::info("getIncome: Additional $additionalIncomeTotal");
+
+        $totalIncome = $monthlyIncome + $additionalIncomeTotal;
+        \Log::info("getIncome: Total $totalIncome");
+
+        return response()->json($totalIncome);
     }
 }

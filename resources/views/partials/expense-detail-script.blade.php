@@ -66,6 +66,15 @@
 
                         // Render list from response directly
                         renderDetailsList(res.details);
+                        
+                        // --- REAL-TIME UPDATES ---
+                        if(window.refreshCardSummary) window.refreshCardSummary();
+                        if(window.reloadCharts) window.reloadCharts();
+                        
+                        // Update List Item Amount in DOM
+                        if(res.total !== undefined) {
+                            updateListItemAmount(expenseId, res.total);
+                        }
                     } else {
                         alert('Gagal menambahkan item: ' + (res.message || 'Unknown error'));
                     }
@@ -131,6 +140,16 @@
         .then(res => res.json())
         .then(res => {
             loadDetails(document.getElementById('currentExpenseId').value);
+            
+            // --- REAL-TIME UPDATES ---
+             if(window.refreshCardSummary) window.refreshCardSummary();
+             if(window.reloadCharts) window.reloadCharts();
+             
+             // Update List Item Amount
+             const expenseId = document.getElementById('currentExpenseId').value;
+             if(res.total !== undefined) {
+                 updateListItemAmount(expenseId, res.total);
+             }
         });
     }
 
@@ -155,7 +174,46 @@
         .then(res => res.json())
         .then(data => {
             console.log('Total Checked Updated:', data.total);
+            console.log('Total Checked Updated:', data.total);
             // Optionally update some total UI here
+            
+             // --- REAL-TIME UPDATES ---
+             if(window.refreshCardSummary) window.refreshCardSummary();
+             // Note: Checking items usually affects 'Realisasi' (Expense) if logic depends on checked items.
+             // Our Controller logic for 'Realisasi' DOES depend on checked items.
+             
+             // Also update list item total? 
+             // Logic in DashboardController: 'amount' column in expenses table is usually total of ALL details? 
+             // Or only checked?
+             // ExpenseDetailController->store/destroy updates 'amount' with SUM(qty*price). ALL items.
+             // ExpenseDetailController->check updates 'is_checked' but currently COMMENTED OUT update to parent amount.
+             // CHECK LINE 89 in ExpenseDetailController: // $detail->expense->update(['amount' => $total]);
+             // BUT dashboard 'Realisasi' query USES `where('is_checked', true)`.
+             
+             // So 'Expense Amount' (in DB) = Total of ALL items (based on store/destroy logic).
+             // 'Realisasi' (in Dashboard) = Total of CHECKED items.
+             
+             // The List Item shows: $exp->amount. 
+             // If $exp->amount is ALL items, then checking/unchecking SHOULD NOT change the list item amount.
+             // However, `refreshCardSummary` (Realisasi) WILL change.
+             
+             // So for Check: Only refresh summary. Do NOT update list item amount (unless we want list item to show Realized only? No, usually allows editing).
+             
         });
+    }
+
+    // Helper to update List Item Amount
+    function updateListItemAmount(id, newAmount) {
+        const li = document.querySelector(`li[data-id="${id}"]`);
+        if(li) {
+            // Update data attribute
+            li.setAttribute('data-amount', newAmount);
+            
+            // Update text (find .text-danger)
+            const amountSpan = li.querySelector('.text-danger');
+            if(amountSpan) {
+                amountSpan.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(newAmount);
+            }
+        }
     }
 </script>
