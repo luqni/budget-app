@@ -21,10 +21,15 @@ class DashboardController extends Controller
         $userId = Auth::id();
         
         // Daily Quote
-        $todaysQuote = Quote::where('is_active_for_date', now()->format('Y-m-d'))->first();
-        if (!$todaysQuote) {
-            $todaysQuote = Quote::inRandomOrder()->first();
-        }
+        // Daily Quote (Cache per user for 24 hours/midnight reset)
+        $todaysQuote = \Illuminate\Support\Facades\Cache::remember('daily_quote_' . $userId . '_' . now()->format('Y-m-d'), now()->endOfDay(), function () {
+            // 1. Check Global Specific Date
+            $global = Quote::where('is_active_for_date', now()->format('Y-m-d'))->first();
+            if ($global) return $global;
+            
+            // 2. Random
+            return Quote::inRandomOrder()->first();
+        });
 
         // Query expense
         $query = Expense::where('user_id', $userId)
@@ -66,13 +71,10 @@ class DashboardController extends Controller
             ->sum('amount');
 
         // Total realisasi
-        $realizationTotal = ExpenseDetail::when($filterMonth, function ($q) use ($filterMonth) {
-                $q->whereHas('expense', fn($e) => $e->where('month', $filterMonth));
-            })
-            ->whereHas('expense', fn($e) => $e->where('user_id', Auth::id()))
-            ->where('is_checked', true)
-            ->selectRaw('SUM(qty * price) as total')
-            ->value('total') ?? 0;
+        // Total realisasi (Gunakan amount dari tabel expenses agar yang tanpa detail tetap terhitung)
+        $realizationTotal = Expense::where('user_id', Auth::id())
+            ->when($filterMonth, fn($q) => $q->where('month', $filterMonth))
+            ->sum('amount');
 
         // Saldo
         $balance = $totalIncome - $realizationTotal;
