@@ -364,10 +364,6 @@
             <div><i class="bi bi-wallet2 me-3 text-primary"></i> Edit Pemasukan Alokasi</div>
             <i class="bi bi-chevron-right small text-muted"></i>
         </button>
-        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
-            <div><i class="bi bi-gear me-3 text-secondary"></i> Pengaturan</div>
-            <i class="bi bi-chevron-right small text-muted"></i>
-        </button>
         <form action="{{ route('logout') }}" method="POST" class="d-block m-0">
             @csrf
             <button type="submit" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-danger">
