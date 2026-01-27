@@ -127,9 +127,26 @@
         padding: 12px 16px;
     }
 
+    .sensitive {
+        transition: all 0.3s ease;
+        /* Pastikan elemen terlihat secara default */
+        display: inline-block; 
+    }
+
     .sensitive.hidden {
+        /* Override display: none bawaan framework jika ada */
+        display: inline-block !important; 
+        
+        /* Efek Blur & Obfuscation */
         filter: blur(8px);
-        user-select: none;
+        opacity: 0.5;
+        user-select: none; /* Agar tidak bisa diblok/copas */
+        pointer-events: none; /* Agar tidak bisa diklik */
+        
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
     }
 </style>
 
@@ -168,7 +185,9 @@
                 <i class="bi bi-wallet2 fs-1 opacity-25"></i>
             </div>
             <div class="d-flex justify-content-end mt-2">
-                 <small class="text-muted"><i class="bi bi-eye toggle-visibility cursor-pointer" data-target="#saldoAmount"></i> Sembunyikan</small>
+                 <small class="text-muted cursor-pointer toggle-visibility" data-target="#saldoAmount">
+                     <i class="bi bi-eye" id="iconSaldo"></i> <span id="textSaldo">Sembunyikan</span>
+                 </small>
             </div>
         </div>
     </div>
@@ -182,7 +201,10 @@
                     <i class="bi bi-arrow-down-circle opacity-50"></i>
                 </div>
                 <p class="m-0 mt-2 fs-5 sensitive" id="totalPemasukanCard">Rp {{ number_format($income ?? 0, 0, ',', '.') }}</p>
-                 <div class="text-end mt-1">
+                 <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-white cursor-pointer toggle-visibility" data-target="#totalPemasukanCard" style="opacity: 0.75;">
+                        <i class="bi bi-eye" id="iconPemasukan"></i> <span id="textPemasukan">Sembunyikan</span>
+                    </small>
                     <i class="bi bi-pencil-square opacity-50 small cursor-pointer" data-bs-toggle="modal" data-bs-target="#editIncomeModal"></i>
                 </div>
             </div>
@@ -821,15 +843,45 @@
              }
         }
         
-        // Visibility Toggle compatibility
-        document.querySelectorAll('.toggle-visibility').forEach(icon => {
-            icon.addEventListener('click', function() {
+        // Enhanced Visibility Toggle with icon and text update
+        document.querySelectorAll('.toggle-visibility').forEach(toggleBtn => {
+            toggleBtn.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target');
                 const target = document.querySelector(targetId);
+                
                 if (target) {
+                    // Toggle class 'hidden' (yang sekarang fungsinya membuat efek blur)
                     target.classList.toggle('hidden');
-                    this.classList.toggle('bi-eye');
-                    this.classList.toggle('bi-eye-slash');
+                    
+                    // Cek kondisi SETELAH toggle:
+                    // Jika punya class 'hidden', berarti sedang Blur.
+                    const isNowBlurred = target.classList.contains('hidden');
+                    
+                    // Update icon and text based on target
+                    let icon, text;
+                    if (targetId === '#saldoAmount') {
+                        icon = document.getElementById('iconSaldo');
+                        text = document.getElementById('textSaldo');
+                    } else if (targetId === '#totalPemasukanCard') {
+                        icon = document.getElementById('iconPemasukan');
+                        text = document.getElementById('textPemasukan');
+                    }
+                    
+                    if (icon && text) {
+                        if (isNowBlurred) {
+                            // KONDISI: Sedang Blur (Hidden) -> Tombol berubah jadi "Tampilkan"
+                            // Reset class icon agar bersih, lalu tambah icon mata (Show)
+                            icon.classList.remove('bi-eye-slash');
+                            icon.classList.add('bi-eye');
+                            text.textContent = 'Tampilkan';
+                        } else {
+                            // KONDISI: Sedang Jelas (Visible) -> Tombol berubah jadi "Sembunyikan"
+                            // Tambah icon mata dicoret (Hide)
+                            icon.classList.remove('bi-eye');
+                            icon.classList.add('bi-eye-slash');
+                            text.textContent = 'Sembunyikan';
+                        }
+                    }
                 }
             });
         });
