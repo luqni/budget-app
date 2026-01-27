@@ -560,13 +560,13 @@
                 <!-- 2. Additional Income -->
                 <h6 class="fw-bold small text-muted mb-3 d-flex justify-content-between align-items-center">
                     PEMASUKAN TAMBAHAN
-                    <button class="btn btn-sm btn-outline-primary py-0" type="button" data-bs-toggle="collapse" data-bs-target="#addIncomeForm">
-                        <i class="bi bi-plus-lg"></i> Tambah
+                    <button class="btn btn-sm btn-outline-primary py-0" type="button" onclick="toggleAddIncomeForm()" id="btnToggleAddIncome">
+                        <i class="bi bi-plus-lg" id="iconToggleAddIncome"></i> <span id="textToggleAddIncome">Tambah</span>
                     </button>
                 </h6>
 
-                <!-- Add Form (Collapse) -->
-                <div class="collapse mb-3" id="addIncomeForm">
+                <!-- Add Form (Custom Toggle) -->
+                <div class="mb-3" id="addIncomeForm" style="display: none;">
                     <div class="card border border-primary border-opacity-25 shadow-sm rounded-3">
                         <div class="card-body p-3 bg-aliceblue">
                             <form action="{{ route('income.transaction.store') }}" method="POST">
@@ -834,5 +834,26 @@
             });
         });
     });
+</script>
+
+<script>
+    // Custom toggle function to avoid Bootstrap collapse conflicts with modal-dialog-scrollable
+    function toggleAddIncomeForm() {
+        const form = document.getElementById('addIncomeForm');
+        const icon = document.getElementById('iconToggleAddIncome');
+        const text = document.getElementById('textToggleAddIncome');
+        
+        if (form.style.display === 'none' || form.style.display === '') {
+            form.style.display = 'block';
+            icon.classList.remove('bi-plus-lg');
+            icon.classList.add('bi-dash-lg');
+            text.textContent = 'Tutup';
+        } else {
+            form.style.display = 'none';
+            icon.classList.remove('bi-dash-lg');
+            icon.classList.add('bi-plus-lg');
+            text.textContent = 'Tambah';
+        }
+    }
 </script>
 @endsection
