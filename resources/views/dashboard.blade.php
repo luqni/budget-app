@@ -365,7 +365,7 @@
     
     <div class="bg-white p-4 rounded-4 shadow-sm text-center mb-4 border">
         <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name }}&background=0d6efd&color=fff&size=128" 
-             class="rounded-circle mb-3 shadow-sm" width="80" height="80">
+             class="rounded-circle mb-3 shadow-sm mx-auto d-block" width="80" height="80">
         <h5 class="fw-bold mb-1">{{ Auth::user()->name }}</h5>
         <p class="text-muted small">{{ Auth::user()->email }}</p>
         
