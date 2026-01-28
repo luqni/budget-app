@@ -1,5 +1,106 @@
 <script>
+    // --- OFFLINE MANAGER ---
+    const OfflineManager = {
+        QUEUE_KEY: 'offline_expense_queue',
+        
+        getQueue: function() {
+            return JSON.parse(localStorage.getItem(this.QUEUE_KEY) || '[]');
+        },
+        
+        addToQueue: function(action, url, method, data) {
+            const queue = this.getQueue();
+            queue.push({
+                id: Date.now(), // Temp ID
+                action: action,
+                url: url,
+                method: method,
+                data: data,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem(this.QUEUE_KEY, JSON.stringify(queue));
+            this.updateIndicator();
+        },
+        
+        processQueue: async function() {
+            const queue = this.getQueue();
+            if (queue.length === 0) return;
+
+            // Show Toast or Indicator
+            const toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+            
+            toast.fire({
+                icon: 'info',
+                title: 'Menyinkronkan data offline (' + queue.length + ' item)...'
+            });
+
+            // Process sequentially
+            const newQueue = [];
+            for (const item of queue) {
+                try {
+                    await fetch(item.url, {
+                        method: item.method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify(item.data)
+                    });
+                } catch (error) {
+                    console.error('Failed to sync item', item, error);
+                    // If error is network related, keep in queue? 
+                    // For now, if fetch fails (e.g. still offline), we keep it.
+                    // fetch only rejects on network error.
+                    newQueue.push(item); 
+                }
+            }
+            
+            localStorage.setItem(this.QUEUE_KEY, JSON.stringify(newQueue));
+            
+            if(newQueue.length === 0) {
+                 toast.fire({
+                    icon: 'success',
+                    title: 'Sinkronisasi Selesai!'
+                });
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                 toast.fire({
+                    icon: 'warning',
+                    title: 'Beberapa data gagal disinkronkan.'
+                });
+            }
+            this.updateIndicator();
+        },
+        
+        updateIndicator: function() {
+            // Optional: Add visual indicator if items are pending
+            const queue = this.getQueue();
+            // Could add a badge somewhere
+        }
+    };
+
+    window.addEventListener('online', () => {
+        console.log('Back online! Processing queue...');
+        OfflineManager.processQueue();
+    });
+    
+    // Check on load
+    if(navigator.onLine) {
+        OfflineManager.processQueue();
+    }
+    
     document.addEventListener("DOMContentLoaded", function () {
+        // ... existing code ...
+
         
         // --- CHART & STATS LOGIC ---
         
@@ -314,12 +415,18 @@
                 // Get values
                 const noteTextEl = document.getElementById('noteText');
                 const amountEl = document.getElementById('amountInput'); 
+                const dateEl = document.getElementById('dateInput');
                 const categoryEl = document.getElementById('noteCategory');
                 const monthEl = document.getElementById('noteMonth');
 
                 // Basic validation
                 if (!noteTextEl.value || !categoryEl.value || !amountEl.value) {
-                    alert('Mohon lengkapi catatan, jumlah, dan kategori!');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Mohon Lengkapi Data',
+                        text: 'Pastikan catatan, jumlah, dan kategori sudah terisi!',
+                        confirmButtonColor: '#0d6efd'
+                    });
                     hideLoader();
                     return;
                 }
@@ -337,6 +444,38 @@
                     });
                 });
 
+                // Check Offline
+                if (!navigator.onLine) {
+                     OfflineManager.addToQueue(
+                        'store', 
+                        '{{ route('expenses.store') }}', 
+                        'POST', 
+                        {
+                            note: noteText,
+                            amount: rawAmount,
+                            date: dateEl.value,
+                            month: monthEl.value,
+                            category_id: categoryEl.value,
+                            details: details
+                        }
+                    );
+                    
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Offline Mode',
+                        text: 'Kamu sedang offline. Data disimpan sementara dan akan diupload otomatis saat online.',
+                        confirmButtonColor: '#0d6efd'
+                    });
+                    
+                    document.getElementById('noteForm').reset();
+                    document.getElementById('newExpenseDetailsList').innerHTML = ''; // Clear details
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addExpenseModal'));
+                    if(modal) modal.hide();
+                    
+                    hideLoader();
+                    return;
+                }
+
                 fetch('{{ route('expenses.store') }}', {
                     method: 'POST',
                     headers: {
@@ -346,6 +485,7 @@
                     body: JSON.stringify({
                         note: noteText,
                         amount: rawAmount,
+                        date: dateEl.value,
                         month: monthEl.value,
                         category_id: categoryEl.value,
                         details: details
@@ -357,7 +497,12 @@
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("Gagal menyimpan data.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Menyimpan',
+                        text: 'Terjadi kesalahan saat menyimpan data.',
+                        confirmButtonColor: '#0d6efd'
+                    });
                 })
                 .finally(() => hideLoader());
             });
@@ -402,10 +547,12 @@
             const note = li.dataset.note;
             const catId = li.dataset.categoryId;
             const amount = li.dataset.amount;
+            const date = li.dataset.date;
             
             document.getElementById('editExpenseId').value = id;
             document.getElementById('editNoteText').value = note; 
             document.getElementById('editAmountInput').value = amount;
+            document.getElementById('editDateInput').value = date;
             document.getElementById('editNoteCategory').value = catId;
             
             // Fetch Details Logic
@@ -502,6 +649,7 @@
                 const id = document.getElementById('editExpenseId').value;
                 const note = document.getElementById('editNoteText').value;
                 const amount = document.getElementById('editAmountInput').value;
+                const date = document.getElementById('editDateInput').value;
                 const catId = document.getElementById('editNoteCategory').value;
                 
                 // Collect Details
@@ -514,10 +662,40 @@
                     });
                 });
 
+                // Check Offline
+                if (!navigator.onLine) {
+                     OfflineManager.addToQueue(
+                        'update', 
+                        `/expenses/${id}`, 
+                        'POST', 
+                        { 
+                            _method: 'PUT', 
+                            note: note, 
+                            amount: amount, 
+                            date: date, 
+                            category_id: catId, 
+                            details: details 
+                        }
+                    );
+                    
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Offline Mode',
+                        text: 'Perubahan disimpan sementara dan akan diupdate otomatis saat online.',
+                        confirmButtonColor: '#0d6efd'
+                    });
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
+                    if(modal) modal.hide();
+                    
+                    hideLoader();
+                    return;
+                }
+
                 fetch(`/expenses/${id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ _method: 'PUT', note: note, amount: amount, category_id: catId, details: details })
+                    body: JSON.stringify({ _method: 'PUT', note: note, amount: amount, date: date, category_id: catId, details: details })
                 })
                 .then(res => res.json())
                 .then(data => {

@@ -297,10 +297,12 @@
          @endif
 
          @foreach ($expenses as $exp)
-            <li class="list-group-item d-flex justify-content-between align-items-start mb-2 cursor-pointer list-item-hover"                                                                                                                                                                                                                                                                                                                                                                                                     data-id="{{ $exp->id }}"
+            <li class="list-group-item d-flex justify-content-between align-items-start mb-2 cursor-pointer list-item-hover"
+                data-id="{{ $exp->id }}"
                 data-category-id="{{ $exp->category_id }}"
                 data-note="{{ $exp->note }}"
                 data-amount="{{ $exp->amount }}"
+                data-date="{{ $exp->date }}"
                 onclick="if(!event.target.closest('button')) openEditExpense(this)">
                 <div class="text-section flex-grow-1">
                     <div class="d-flex align-items-center mb-1">
@@ -435,6 +437,11 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">TANGGAL</label>
+                        <input type="date" id="dateInput" class="form-control bg-light border-0" value="{{ date('Y-m-d') }}" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">KATEGORI</label>
                         <select id="noteCategory" class="form-select form-select-lg bg-light border-0" required>
                             <option value="" selected disabled>Pilih Kategori...</option>
@@ -488,6 +495,10 @@
                     <div class="mb-3">
                         <label class="form-label small text-muted">Nominal (Rp)</label>
                         <input type="number" id="editAmountInput" class="form-control" placeholder="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Tanggal</label>
+                        <input type="date" id="editDateInput" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-muted">Catatan</label>

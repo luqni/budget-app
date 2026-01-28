@@ -123,6 +123,29 @@
         </div>
     </div>
 
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: "{{ session('success') }}",
+                timer: 3000,
+                showConfirmButton: false,
+                confirmButtonColor: '#0d6efd'
+            });
+        @endif
+
+        @if($errors->any())
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: "{{ $errors->first() }}",
+                confirmButtonColor: '#0d6efd'
+            });
+        @endif
+    </script>
 </body>
 <script>
 function showLoader() {

@@ -118,19 +118,21 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'note' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0|max:2147483647',
+            'date' => 'nullable|date',
             'month' => 'required|date_format:Y-m',
             'category_id' => 'nullable|exists:categories,id',
             'details' => 'nullable|array',
             'details.*.name' => 'required|string',
-            'details.*.qty' => 'required|integer|min:1',
-            'details.*.price' => 'required|numeric|min:0',
+            'details.*.qty' => 'required|integer|min:1|max:2147483647',
+            'details.*.price' => 'required|numeric|min:0|max:2147483647',
         ]);
 
         $expense = Expense::create([
             'user_id' => Auth::id(), // ✅ Simpan user ID
             'note' => $data['note'],
             'amount' => $data['amount'],
+            'date' => $data['date'] ?? now(),
             'month' => $data['month'],
             'category_id' => $data['category_id'] ?? null,
         ]);
@@ -156,12 +158,13 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'note' => 'required|string',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0|max:2147483647',
+            'date' => 'nullable|date',
             'category_id' => 'nullable|exists:categories,id',
             'details' => 'nullable|array',
             'details.*.name' => 'required|string',
-            'details.*.qty' => 'required|integer|min:1',
-            'details.*.price' => 'required|numeric|min:0',
+            'details.*.qty' => 'required|integer|min:1|max:2147483647',
+            'details.*.price' => 'required|numeric|min:0|max:2147483647',
         ]);
 
         $expense = Expense::where('user_id', Auth::id())->findOrFail($id); // ✅ Cegah edit data user lain
@@ -169,6 +172,7 @@ class DashboardController extends Controller
         $expense->update([
             'note' => $request->note,
             'amount' => $request->amount,
+            'date' => $request->date ?? $expense->date,
             'category_id' => $request->category_id,
         ]);
 
@@ -275,7 +279,7 @@ class DashboardController extends Controller
             return [
                 'name' => $item->category ? $item->category->name : 'Lainnya',
                 'icon' => $item->category ? $item->category->icon : '❓',
-                'color' => '#0d6efd', // We'll handle colors in frontend
+                'color' => $item->category ? ($item->category->color ?? '#0d6efd') : '#6c757d',
                 'total' => (int) $item->total,
                 'percentage' => $percentage
             ];
@@ -288,7 +292,7 @@ class DashboardController extends Controller
     public function storeIncome(Request $request)
     {
         $request->validate([
-            'income' => 'required|integer',
+            'income' => 'required|numeric|max:9999999999999',
             'monthIncome' => 'required|date_format:Y-m',
         ]);
         MonthlyIncome::updateOrCreate(
@@ -306,7 +310,7 @@ class DashboardController extends Controller
     public function updateIncome(Request $request)
     {
         $request->validate([
-            'income' => 'required|integer',
+            'income' => 'required|numeric|max:9999999999999',
             'monthIncome' => 'required|date_format:Y-m',
         ]);
         MonthlyIncome::updateOrCreate(
@@ -325,7 +329,7 @@ class DashboardController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0|max:9999999999999',
             'date' => 'required|date',
         ]);
 

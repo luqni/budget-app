@@ -28,8 +28,8 @@ class ExpenseDetailController extends Controller
             $validated = $request->validate([
                 'note_id' => 'required|exists:expenses,id',
                 'name' => 'required|string|max:255',
-                'qty' => 'required|integer|min:1',
-                'price' => 'required|numeric|min:0',
+                'qty' => 'required|integer|min:1|max:2147483647',
+                'price' => 'required|numeric|min:0|max:2147483647',
             ]);
 
             $detail = ExpenseDetail::create([
