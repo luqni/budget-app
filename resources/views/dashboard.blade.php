@@ -583,7 +583,7 @@
                                 <input type="number" name="income" class="form-control fw-bold border-0" value="{{ $mainIncome ?? 0 }}" placeholder="0">
                                 <button class="btn btn-primary" type="submit"><i class="bi bi-check-lg"></i></button>
                             </div>
-                            <small class="text-muted" style="font-size: 0.75rem;">Ubah nolimain gaji/jatah bulanan di sini.</small>
+                            <small class="text-muted" style="font-size: 0.75rem;">Ubah nominal gaji/jatah bulanan di sini.</small>
                         </form>
                     </div>
                 </div>
