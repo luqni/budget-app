@@ -3,6 +3,11 @@
 @section('content')
 <style>
     /* Mobile-first styles specific to Dashboard */
+    .offline-item {
+        border-left: 3px dashed #ffc107 !important;
+        background-color: #fffbf0 !important;
+        opacity: 0.8;
+    }
     .summary-card {
         padding: 1rem;
         border-radius: 16px;
@@ -754,6 +759,9 @@
     </div>
 </div>
 
+<script>
+    window.CATEGORY_DATA = @json($categories);
+</script>
 <script>
     // Simple Tab Switcher
     function switchTab(tabId) {

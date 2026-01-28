@@ -18,7 +18,73 @@
                 timestamp: new Date().toISOString()
             });
             localStorage.setItem(this.QUEUE_KEY, JSON.stringify(queue));
-            this.updateIndicator();
+            this.renderOfflineItems(); // Render immediately
+        },
+        
+        renderOfflineItems: function() {
+            const queue = this.getQueue();
+            const recentList = document.getElementById('recentNotesList');
+            const historyList = document.getElementById('notesList');
+            
+            // Remove existing offline items (identified by class)
+            document.querySelectorAll('.offline-item-entry').forEach(el => el.remove());
+
+            if (queue.length === 0) return;
+
+            // Categories map
+            const cats = window.CATEGORY_DATA || [];
+
+            queue.forEach(item => {
+                if(item.action === 'store') {
+                     const cat = cats.find(c => c.id == item.data.category_id) || {name: 'Umum', icon: '📝', color: '#eee'};
+                     const amount = new Intl.NumberFormat('id-ID').format(item.data.amount);
+                     
+                     // Template for Recent List
+                     if(recentList) {
+                         const li = document.createElement('li');
+                         li.className = 'd-flex justify-content-between align-items-center mb-3 border-bottom pb-2 offline-item-entry';
+                         li.innerHTML = `
+                             <div class="d-flex align-items-center opacity-75">
+                                 <div class="me-3 shadow-sm" style="width: 40px; height: 40px; background: #fff3cd; color: #856404; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ffc107;">
+                                     <span style="font-size: 1.2rem;"><i class="bi bi-hourglass-split"></i></span>
+                                 </div>
+                                 <div class="offline-item rounded p-1 px-2">
+                                     <h6 class="m-0 fw-bold text-dark" style="font-size: 0.9rem;">${item.data.note} <small class="text-warning">(Offline)</small></h6>
+                                     <small class="text-muted" style="font-size: 0.75rem;">
+                                         Pending Sync &bull; ${cat.name}
+                                     </small>
+                                 </div>
+                             </div>
+                             <span class="fw-bold text-warning" style="font-size: 0.9rem;">- Rp ${amount}</span>
+                         `;
+                         recentList.prepend(li);
+                     }
+                     
+                     // Template for History List
+                     if(historyList) {
+                         const li = document.createElement('li');
+                         li.className = 'list-group-item d-flex justify-content-between align-items-start mb-2 offline-item-entry offline-item';
+                         li.innerHTML = `
+                            <div class="text-section flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                     <span class="badge bg-warning text-dark border me-2 rounded-pill fw-normal">
+                                         <i class="bi bi-hourglass-split"></i> Pending
+                                     </span>
+                                    <span class="note-date text-muted small" style="font-size:0.75rem;">
+                                         Menunggu koneksi...
+                                    </span>
+                                </div>
+                                <span class="note-text fw-semibold text-dark">${item.data.note}</span> 
+                            </div>
+                            <div class="text-end ms-2">
+                                <span class="fw-bold text-danger d-block mb-1">Rp ${amount}</span>
+                                <small class="text-muted fst-italic">Offline</small>
+                            </div>
+                         `;
+                         historyList.prepend(li);
+                     }
+                }
+            });
         },
         
         processQueue: async function() {
@@ -96,6 +162,8 @@
     // Check on load
     if(navigator.onLine) {
         OfflineManager.processQueue();
+    } else {
+        OfflineManager.renderOfflineItems();
     }
     
     document.addEventListener("DOMContentLoaded", function () {
