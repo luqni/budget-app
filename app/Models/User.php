@@ -48,4 +48,27 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    /**
+     * Get the expenses for the user.
+     */
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * Get the additional incomes for the user.
+     */
+    public function incomes()
+    {
+        return $this->hasMany(Income::class);
+    }
+
+    /**
+     * Get the monthly (main) incomes for the user.
+     */
+    public function monthlyIncomes()
+    {
+        return $this->hasMany(MonthlyIncome::class);
+    }
 }

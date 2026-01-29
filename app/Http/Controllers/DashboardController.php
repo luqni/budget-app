@@ -383,8 +383,40 @@ class DashboardController extends Controller
 
     public function countUsers(){
         $totalUsers = \App\Models\User::count();
+
+        // Active Users: Users who have added an Expense OR Income (Main/Additional) in the last 30 days.
+        $thirtyDaysAgo = now()->subDays(30);
         
-        return view('user', compact('totalUsers'));
+        $activeUsers = \App\Models\User::whereHas('expenses', function($q) use ($thirtyDaysAgo) {
+            $q->where('created_at', '>=', $thirtyDaysAgo);
+        })->orWhereHas('incomes', function($q) use ($thirtyDaysAgo) {
+             $q->where('created_at', '>=', $thirtyDaysAgo);
+        })->orWhereHas('monthlyIncomes', function($q) use ($thirtyDaysAgo) {
+             $q->where('created_at', '>=', $thirtyDaysAgo);
+        })->count();
+
+
+        // User Growth Data: Group users by creation month
+        // We will show data for the last 12 months for better visualization
+        $months = [];
+        $growthData = [];
+        
+        for ($i = 11; $i >= 0; $i--) {
+             $date = now()->subMonths($i);
+             $monthLabel = $date->translatedFormat('F Y');
+             $yearMonth = $date->format('Y-m');
+             
+             // Count users created up to the end of this month (Cumulative Growth)
+             // Or separate by month. Let's do Cumulative to show "Growth"
+             $count = \App\Models\User::where('created_at', '<=', $date->endOfMonth())->count();
+             
+             $months[] = $monthLabel;
+             $growthData[] = $count;
+        }
+
+        $totalDownloads = \App\Models\ApplicationStat::first()->downloads ?? 0;
+
+        return view('user', compact('totalUsers', 'activeUsers', 'months', 'growthData', 'totalDownloads'));
     }
 
     public function getDataAlokasi(Request $request){

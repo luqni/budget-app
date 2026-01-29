@@ -226,4 +226,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 </script>
+<script>
+    window.addEventListener('appinstalled', (evt) => {
+        fetch('/api/app-stat/download', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+    });
+</script>
 </html>
