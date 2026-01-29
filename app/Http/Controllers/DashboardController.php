@@ -79,19 +79,21 @@ class DashboardController extends Controller
         // Saldo
         $balance = $totalIncome - $realizationTotal;
 
-        // Dropdown bulan (khusus data user ini)
+        // Dropdown bulan (khusus data user ini + 5 bulan ke depan)
         $months = Expense::where('user_id', $userId)
             ->select('month')
             ->distinct()
             ->orderBy('month', 'desc')
             ->pluck('month');
 
-        // Ensure current month is always available
-        $currentMonth = now()->format('Y-m');
-        if (!$months->contains($currentMonth)) {
-            $months->push($currentMonth);
-            $months = $months->sortDesc();
+        // Generate next 5 months
+        $futureMonths = collect();
+        for ($i = 0; $i <= 5; $i++) {
+            $futureMonths->push(now()->startOfMonth()->addMonths($i)->format('Y-m'));
         }
+
+        // Merge and Sort (Ascending: Smallest -> Largest)
+        $months = $months->merge($futureMonths)->unique()->sort()->values();
 
         $categories = Category::all();
 
@@ -128,12 +130,26 @@ class DashboardController extends Controller
             'details.*.price' => 'required|numeric|min:0|max:2147483647',
         ]);
 
+        // Derive proper month from date
+        $fixedMonth = date('Y-m', strtotime($data['date'] ?? now()));
+
+        // STRICT CHECK: Must have Income set for this month
+        $hasIncome = MonthlyIncome::where('user_id', Auth::id())
+            ->where('month', $fixedMonth)
+            ->exists();
+
+        if (!$hasIncome) {
+            return response()->json([
+                'message' => 'Harap atur Pemasukan Utama untuk bulan ' . \Carbon\Carbon::createFromFormat('Y-m', $fixedMonth)->translatedFormat('F Y') . ' terlebih dahulu.'
+            ], 422);
+        }
+
         $expense = Expense::create([
             'user_id' => Auth::id(), // ✅ Simpan user ID
             'note' => $data['note'],
             'amount' => $data['amount'],
             'date' => $data['date'] ?? now(),
-            'month' => $data['month'],
+            'month' => $fixedMonth,
             'category_id' => $data['category_id'] ?? null,
         ]);
 
@@ -173,6 +189,7 @@ class DashboardController extends Controller
             'note' => $request->note,
             'amount' => $request->amount,
             'date' => $request->date ?? $expense->date,
+            'month' => date('Y-m', strtotime($request->date ?? $expense->date)), // Auto update month
             'category_id' => $request->category_id,
         ]);
 
@@ -291,6 +308,10 @@ class DashboardController extends Controller
 
     public function storeIncome(Request $request)
     {
+        $request->merge([
+            'income' => str_replace('.', '', $request->income)
+        ]);
+
         $request->validate([
             'income' => 'required|numeric|max:9999999999999',
             'monthIncome' => 'required|date_format:Y-m',
@@ -309,6 +330,10 @@ class DashboardController extends Controller
 
     public function updateIncome(Request $request)
     {
+        $request->merge([
+            'income' => str_replace('.', '', $request->income)
+        ]);
+
         $request->validate([
             'income' => 'required|numeric|max:9999999999999',
             'monthIncome' => 'required|date_format:Y-m',
@@ -327,6 +352,10 @@ class DashboardController extends Controller
 
     public function storeAdditionalIncome(Request $request)
     {
+        $request->merge([
+            'amount' => str_replace('.', '', $request->amount)
+        ]);
+        
         $request->validate([
             'title' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0|max:9999999999999',

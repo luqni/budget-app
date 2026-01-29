@@ -171,7 +171,7 @@
                <select id="monthSelect" class="form-select form-select-sm shadow-sm border-0 bg-white text-primary fw-bold" style="width:auto;" name="month" onchange="this.form.submit()">
                    @foreach ($months as $month)
                        <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
-                           {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y') }}
+                           {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}
                        </option>
                    @endforeach
                </select>
@@ -437,13 +437,16 @@
                     
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">NOMINAL (RP)</label>
-                        <input type="text" id="amountInput" class="form-control form-control-lg fs-2 fw-bold text-primary border-0 bg-light" placeholder="0" inputmode="numeric">
+                        <input type="text" id="amountInput" class="form-control form-control-lg fs-2 fw-bold text-primary border-0 bg-light" placeholder="0" inputmode="numeric" oninput="formatCurrency(this)">
                         <!-- Note: logic in JS must take this value and put it into hidden 'noteText' structure or separate amount field -->
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">TANGGAL</label>
-                        <input type="date" id="dateInput" class="form-control bg-light border-0" value="{{ date('Y-m-d') }}" required>
+                        @php
+                            $defaultDate = ($selectedMonth == now()->format('Y-m')) ? now()->format('Y-m-d') : \Carbon\Carbon::parse($selectedMonth . '-01')->format('Y-m-01');
+                        @endphp
+                        <input type="date" id="dateInput" class="form-control bg-light border-0" value="{{ $defaultDate }}" required>
                     </div>
 
                     <div class="mb-3">
@@ -499,7 +502,7 @@
                     <input type="hidden" id="editExpenseId">
                     <div class="mb-3">
                         <label class="form-label small text-muted">Nominal (Rp)</label>
-                        <input type="number" id="editAmountInput" class="form-control" placeholder="0" required>
+                        <input type="text" inputmode="numeric" id="editAmountInput" class="form-control" placeholder="0" required oninput="formatCurrency(this)">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-muted">Tanggal</label>
@@ -552,11 +555,11 @@
                 @csrf
                 <div class="mb-3">
                     <label class="form-label fw-bold small">BULAN</label>
-                    <input type="month" id="monthIncomeInput" class="form-control bg-light border-0" name="monthIncome" value="{{ now()->format('Y-m') }}" required>
+                    <input type="month" id="monthIncomeInput" class="form-control bg-light border-0" name="monthIncome" value="{{ $selectedMonth ?? now()->format('Y-m') }}" required>
                 </div>
                 <div class="mb-3">
                      <label class="form-label fw-bold small">TOTAL PEMASUKAN</label>
-                    <input type="number" name="income" class="form-control form-control-lg fw-bold text-success bg-light border-0" placeholder="Rp 0" required>
+                    <input type="text" inputmode="numeric" name="income" class="form-control form-control-lg fw-bold text-success bg-light border-0" placeholder="Rp 0" required oninput="formatCurrency(this)">
                 </div>
                 <button class="btn btn-primary w-100 rounded-3 py-2 fw-bold">Mulai!</button>
             </form>
@@ -578,14 +581,14 @@
                 <div class="card bg-light border-0 mb-3 rounded-3">
                     <div class="card-body p-3">
                         <h6 class="fw-bold small text-muted mb-2">PEMASUKAN UTAMA (GAJI UTAMA)</h6>
-                        <form action="{{ route('income.update') }}" method="POST">
+                        <form action="{{ route('income.update') }}" method="POST" id="mainIncomeForm">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="monthIncome" value="{{ $selectedMonth }}">
                             
                             <div class="input-group">
                                 <span class="input-group-text border-0 bg-white">Rp</span>
-                                <input type="number" name="income" class="form-control fw-bold border-0" value="{{ $mainIncome ?? 0 }}" placeholder="0">
+                                <input type="text" inputmode="numeric" name="income" class="form-control fw-bold border-0" value="{{ number_format($mainIncome ?? 0, 0, ',', '.') }}" placeholder="0" oninput="formatCurrency(this)">
                                 <button class="btn btn-primary" type="submit"><i class="bi bi-check-lg"></i></button>
                             </div>
                             <small class="text-muted" style="font-size: 0.75rem;">Ubah nominal gaji/jatah bulanan di sini.</small>
@@ -607,7 +610,7 @@
                 <div class="mb-3" id="addIncomeForm" style="display: none;">
                     <div class="card border border-primary border-opacity-25 shadow-sm rounded-3">
                         <div class="card-body p-3 bg-aliceblue">
-                            <form action="{{ route('income.transaction.store') }}" method="POST">
+                            <form action="{{ route('income.transaction.store') }}" method="POST" id="addIncomeFormInner">
                                 @csrf
                                 <div class="mb-2">
                                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Nama Sumber (mis: Proyek A)" required>
@@ -616,7 +619,7 @@
                                     <div class="col-7">
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-white">Rp</span>
-                                            <input type="number" name="amount" class="form-control" placeholder="Jumlah" required>
+                                            <input type="text" inputmode="numeric" name="amount" class="form-control" placeholder="Jumlah" required oninput="formatCurrency(this)">
                                         </div>
                                     </div>
                                     <div class="col-5">
@@ -630,7 +633,7 @@
                 </div>
 
                 <!-- List -->
-                <ul class="list-group list-group-flush border rounded-3 overflow-hidden">
+                <ul class="list-group list-group-flush border rounded-3 overflow-hidden" id="additionalIncomeList">
                     @forelse ($additionalIncomes as $addIncome)
                         <li class="list-group-item d-flex justify-content-between align-items-center p-2">
                             <div>
