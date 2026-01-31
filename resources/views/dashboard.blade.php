@@ -275,7 +275,7 @@
     </div>
 
     <!-- Doughnut Chart Expense per Category -->
-    <h6 class="fw-bold mb-3 px-2">Pengeluaran per Kategori (3 Bulan Terakhir)</h6>
+    <h6 class="fw-bold mb-3 px-2">Pengeluaran per Kategori</h6>
     <div class="bg-white p-3 rounded-3 shadow-sm mb-3 border">
         <div style="position: relative; height: 250px;">
             <canvas id="categoryChart"></canvas>

@@ -329,8 +329,10 @@
                 .then(data => {
                     console.log('Chart data received:', data);
                     
-                    const labels = data.map(d => d.month);
+                    // Use category names with icons as labels
+                    const labels = data.map(d => `${d.icon} ${d.category}`);
                     const values = data.map(d => d.total);
+                    const colors = data.map(d => d.color);
 
                     if (window.expenseChart) {
                         window.expenseChart.destroy();
@@ -345,7 +347,7 @@
                                 data: values,
                                 borderWidth: 0,
                                 borderRadius: 4,
-                                backgroundColor: '#0d6efd',
+                                backgroundColor: colors,
                                 barThickness: 20
                             }]
                         },

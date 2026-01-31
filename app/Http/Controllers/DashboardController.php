@@ -278,40 +278,23 @@ class DashboardController extends Controller
         $userId = Auth::id();
         $targetMonth = $request->query('month'); // Format 'Y-m', optional
 
-        // Logic: 
-        // If specific month is selected -> Show Daily breakdown for that month?
-        // Or keep Bar Chart showing Monthly trend for the YEAR of selected month?
-        // Let's stick to: Bar Chart shows Monthly Trend for 12 months ending at selected month (or current)
+        // Use selected month or current month
+        $selectedMonth = $targetMonth ?: now()->format('Y-m');
         
-        $endDate = $targetMonth ? \Carbon\Carbon::createFromFormat('Y-m', $targetMonth)->endOfMonth() : now()->endOfMonth();
-        $startDate = $endDate->copy()->subMonths(11)->startOfMonth();
-
-        $driver = \DB::getDriverName();
-
-        if ($driver === 'sqlite') {
-            $data = \App\Models\Expense::selectRaw('month, SUM(amount) as total')
-                ->whereBetween('month', [$startDate->format('Y-m'), $endDate->format('Y-m')])
-                ->where('user_id', $userId)
-                ->groupBy('month')
-                ->orderBy('month', 'asc')
-                ->get();
-        } else {
-            $data = \App\Models\Expense::selectRaw('month, SUM(amount) as total')
-                ->whereBetween('month', [$startDate->format('Y-m'), $endDate->format('Y-m')])
-                ->where('user_id', $userId)
-                ->groupBy('month')
-                ->orderBy('month', 'asc')
-                ->get();
-        }
+        // Get expenses for the selected month only, grouped by category
+        $data = \App\Models\Expense::where('user_id', $userId)
+            ->where('month', $selectedMonth)
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->orderByDesc('total')
+            ->with('category')
+            ->get();
 
         $formatted = $data->map(function ($item) {
-            try {
-                $monthName = \Carbon\Carbon::createFromFormat('Y-m', $item->month)->translatedFormat('M y');
-            } catch (\Exception $e) {
-                $monthName = $item->month;
-            }
             return [
-                'month' => $monthName,
+                'category' => $item->category ? $item->category->name : 'Lainnya',
+                'icon' => $item->category ? $item->category->icon : '❓',
+                'color' => $item->category ? ($item->category->color ?? '#0d6efd') : '#6c757d',
                 'total' => (int) $item->total,
             ];
         });
