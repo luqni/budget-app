@@ -42,13 +42,13 @@
 ## 📸 Tampilan Aplikasi
 
 ### 🏠 Dashboard Utama
-![Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screen Shot 2026-01-31 at 16.23.24.png)
+![Dashboard](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202026-01-31%20at%2016.23.24.png)
 
 ### 📊 Statistik Pengeluaran
-![Grafik Bulanan Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen Shot 2026-01-31 at 16.23.54.png)
+![Grafik Bulanan Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202026-01-31%20at%2016.23.54.png)
 
 ### 📝 Pencatatan Transaksi
-![Form Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen Shot 2026-01-31 at 16.24.22.png)
+![Form Pengeluaran](https://github.com/luqni/budget-app/blob/main/screenshot/Screen%20Shot%202026-01-31%20at%2016.24.22.png)
 
 ---
 
