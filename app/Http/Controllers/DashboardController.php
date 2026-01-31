@@ -675,56 +675,68 @@ class DashboardController extends Controller
             ->with('details')
             ->get();
         
-        \Log::info("Found recurring expenses", [
-            'count' => $recurringExpenses->count(),
-            'expenses' => $recurringExpenses->pluck('note', 'id')->toArray()
-        ]);
-        
         foreach ($recurringExpenses as $expense) {
-            // Check if this expense already exists in target month
-            $exists = Expense::where('user_id', $userId)
+            // 1. Check if this specific expense execution has already been logged for this target month
+            // This is the robust check: ID-based tracking
+            $alreadyLogged = \App\Models\RecurringLog::where('source_expense_id', $expense->id)
+                ->where('target_month', $targetMonth)
+                ->exists();
+
+            if ($alreadyLogged) {
+                // Already processed this exact source record for this month. Skip.
+                continue;
+            }
+
+            // 2. BACKWARD COMPATIBILITY: Check for "Legacy" duplicates (created before logging existed)
+            // If the user already has an identical expense in the target month, we assume it was already copied.
+            // We should just Log it and skip to prevent double-copying.
+            $legacyDuplicate = Expense::where('user_id', $userId)
                 ->where('month', $targetMonth)
                 ->where('note', $expense->note)
                 ->where('category_id', $expense->category_id)
+                ->where('amount', $expense->amount)
                 ->where('is_recurring', true)
-                ->exists();
-            
-            \Log::info("Checking expense", [
-                'expense_id' => $expense->id,
+                ->first();
+
+            if ($legacyDuplicate) {
+                // It exists but wasn't logged (legacy data or manual duplicate). 
+                // Let's log it now so we don't check again.
+                \App\Models\RecurringLog::create([
+                    'source_expense_id' => $expense->id,
+                    'target_month' => $targetMonth
+                ]);
+                continue;
+            }
+
+            // 3. Perform Copy
+            $newExpense = Expense::create([
+                'user_id' => $userId,
                 'note' => $expense->note,
-                'exists_in_target' => $exists
+                'amount' => $expense->amount,
+                'date' => \Carbon\Carbon::parse($targetMonth . '-01')->startOfMonth()->format('Y-m-d'),
+                'month' => $targetMonth,
+                'category_id' => $expense->category_id,
+                'is_recurring' => true,
             ]);
             
-            if (!$exists) {
-                // Copy expense to new month
-                $newExpense = Expense::create([
-                    'user_id' => $userId,
-                    'note' => $expense->note,
-                    'amount' => $expense->amount,
-                    'date' => \Carbon\Carbon::parse($targetMonth . '-01')->startOfMonth()->format('Y-m-d'),
-                    'month' => $targetMonth,
-                    'category_id' => $expense->category_id,
-                    'is_recurring' => true,
-                ]);
-                
-                \Log::info("Created new expense", [
-                    'new_expense_id' => $newExpense->id,
-                    'note' => $newExpense->note
-                ]);
-                
-                // Copy expense details if exists
-                if ($expense->details && $expense->details->count() > 0) {
-                    foreach ($expense->details as $detail) {
-                        ExpenseDetail::create([
-                            'expense_id' => $newExpense->id,
-                            'name' => $detail->name,
-                            'qty' => $detail->qty,
-                            'price' => $detail->price,
-                            'is_checked' => false, // Reset checked status for new month
-                        ]);
-                    }
+            // Copy details
+            if ($expense->details && $expense->details->count() > 0) {
+                foreach ($expense->details as $detail) {
+                    ExpenseDetail::create([
+                        'expense_id' => $newExpense->id,
+                        'name' => $detail->name,
+                        'qty' => $detail->qty,
+                        'price' => $detail->price,
+                        'is_checked' => false, 
+                    ]);
                 }
             }
+
+            // 4. Log the copy action
+            \App\Models\RecurringLog::create([
+                'source_expense_id' => $expense->id,
+                'target_month' => $targetMonth
+            ]);
         }
     }
 }
