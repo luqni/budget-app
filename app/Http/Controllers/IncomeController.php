@@ -8,7 +8,7 @@ class IncomeController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate(['amount' => 'required|numeric|min:0']);
+        $request->validate(['amount' => 'required|numeric|min:0|max:2147483647']);
 
         auth()->user()->update([
             'income' => $request->amount
@@ -19,7 +19,7 @@ class IncomeController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate(['amount' => 'required|numeric|min:0']);
+        $request->validate(['amount' => 'required|numeric|min:0|max:2147483647']);
 
         auth()->user()->update([
             'income' => $request->amount

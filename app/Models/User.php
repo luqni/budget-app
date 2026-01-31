@@ -22,6 +22,8 @@ class User extends Authenticatable
         'email',
         'password',
         'income',
+        'google_id',
+        'avatar',
     ];
 
     /**
@@ -45,5 +47,36 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+    /**
+     * Get the expenses for the user.
+     */
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * Get the additional incomes for the user.
+     */
+    public function incomes()
+    {
+        return $this->hasMany(Income::class);
+    }
+
+    /**
+     * Get the monthly (main) incomes for the user.
+     */
+    public function monthlyIncomes()
+    {
+        return $this->hasMany(MonthlyIncome::class);
+    }
+
+    /**
+     * Get the categories for the user.
+     */
+    public function categories()
+    {
+        return $this->hasMany(Category::class);
     }
 }

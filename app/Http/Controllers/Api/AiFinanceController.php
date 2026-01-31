@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Expense;
 use App\Models\ExpenseDetail;
 use App\Models\User;
+use App\Models\MonthlyIncome;
+use App\Models\Income;
 use Carbon\Carbon;
 
 class AiFinanceController extends Controller
@@ -37,15 +39,23 @@ class AiFinanceController extends Controller
             ];
         });
 
-        // Total pemasukan
-        $income = $user->income;
+        // Total pemasukan correct
+        $mainIncome = MonthlyIncome::where('user_id', $user->id)
+            ->where('month', $month)
+            ->value('income') ?? 0;
+            
+        $addIncome = Income::where('user_id', $user->id)
+            ->where('month', $month)
+            ->sum('amount');
+            
+        $income = $mainIncome + $addIncome;
 
         // Sisa saldo
         $balance = $income - $totalExpense;
 
         return response()->json([
             'month' => Carbon::now()->translatedFormat('F Y'),
-            'income' => $income,
+            'income' => (int) $income,
             'total_expense' => $totalExpense,
             'balance' => $balance,
             'categories' => $grouped,
@@ -84,17 +94,26 @@ class AiFinanceController extends Controller
             ->where('month', $month)
             ->sum('amount');
 
-        $income = $user->income;
+        $mainIncome = MonthlyIncome::where('user_id', $user->id)
+            ->where('month', $month)
+            ->value('income') ?? 0;
+
+        $addIncome = Income::where('user_id', $user->id)
+            ->where('month', $month)
+            ->sum('amount');
+
+        $income = $mainIncome + $addIncome;
+
         $balance = $income - $totalExpense;
 
-        $topItems = ExpenseDetail::whereHas('expense', function ($q) use ($user, $month) {
-            $q->where('user_id', $user->id)->where('month', $month);
-        })
-        ->selectRaw('name, SUM(qty*price) as total')
-        ->groupBy('name')
-        ->orderByDesc('total')
-        ->take(5)
-        ->get();
+        $topCategories = Expense::where('user_id', $user->id)
+            ->where('month', $month)
+            ->with('category')
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->orderByDesc('total')
+            ->take(5)
+            ->get();
 
         $text = "Ringkasan keuangan {$user->name} bulan " . Carbon::now()->translatedFormat('F Y') . ":\n";
         $text .= "- Total pemasukan: Rp " . number_format($income, 0, ',', '.') . "\n";
@@ -102,8 +121,13 @@ class AiFinanceController extends Controller
         $text .= "- Sisa saldo: Rp " . number_format($balance, 0, ',', '.') . "\n\n";
         $text .= "5 kategori pengeluaran terbesar:\n";
 
-        foreach ($topItems as $item) {
-            $text .= "• {$item->name}: Rp " . number_format($item->total, 0, ',', '.') . "\n";
+        if ($topCategories->isEmpty()) {
+            $text .= "- Belum ada pengeluaran.\n";
+        } else {
+            foreach ($topCategories as $item) {
+                $catName = $item->category ? $item->category->name : 'Lainnya';
+                $text .= "• {$catName}: Rp " . number_format($item->total, 0, ',', '.') . "\n";
+            }
         }
 
         return response()->json([
