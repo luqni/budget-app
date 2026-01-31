@@ -130,12 +130,14 @@
         const note = element.getAttribute('data-note');
         const amount = element.getAttribute('data-amount');
         const date = element.getAttribute('data-date');
+        const isRecurring = element.getAttribute('data-is-recurring') === '1';
         
         // Populate modal fields
         document.getElementById('editExpenseId').value = id;
         document.getElementById('editNoteText').value = note;
         document.getElementById('editNoteCategory').value = categoryId || '';
         document.getElementById('editDateInput').value = date; // Set date field
+        document.getElementById('editIsRecurring').checked = isRecurring; // Set recurring checkbox
         
         // Format amount for display
         const formattedAmount = new Intl.NumberFormat('id-ID').format(amount);

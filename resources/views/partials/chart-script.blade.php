@@ -635,6 +635,7 @@
                             date: dateEl.value,
                             month: monthEl.value,
                             category_id: categoryEl.value,
+                            is_recurring: document.getElementById('isRecurring')?.checked ? 1 : 0,
                             details: details
                         }
                     );
@@ -667,6 +668,7 @@
                         date: dateEl.value,
                         month: monthEl.value,
                         category_id: categoryEl.value,
+                        is_recurring: document.getElementById('isRecurring')?.checked ? 1 : 0,
                         details: details
                     })
                 })
@@ -871,6 +873,7 @@
                             amount: parseCurrency(amount), 
                             date: date, 
                             category_id: catId, 
+                            is_recurring: document.getElementById('editIsRecurring')?.checked ? 1 : 0,
                             details: details 
                         }
                     );
@@ -892,7 +895,7 @@
                 fetch(`/expenses/${id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ _method: 'PUT', note: note, amount: parseCurrency(amount), date: date, category_id: catId, details: details })
+                    body: JSON.stringify({ _method: 'PUT', note: note, amount: parseCurrency(amount), date: date, category_id: catId, is_recurring: document.getElementById('editIsRecurring')?.checked ? 1 : 0, details: details })
                 })
                 .then(res => res.json())
                 .then(data => {

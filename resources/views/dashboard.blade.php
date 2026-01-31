@@ -352,12 +352,18 @@
                 data-note="{{ $exp->note }}"
                 data-amount="{{ $exp->amount }}"
                 data-date="{{ $exp->date }}"
+                data-is-recurring="{{ $exp->is_recurring ? '1' : '0' }}"
                 onclick="if(!event.target.closest('button')) openEditExpense(this)">
                 <div class="text-section flex-grow-1">
                     <div class="d-flex align-items-center mb-1">
                         @if($exp->category)
                              <span class="badge bg-light text-dark border me-2 rounded-pill fw-normal">
                                  {{ $exp->category->icon }} {{ $exp->category->name }}
+                             </span>
+                        @endif
+                        @if($exp->is_recurring)
+                             <span class="badge bg-info text-white me-2 rounded-pill fw-normal">
+                                 🔄 Rutin
                              </span>
                         @endif
                         <span class="note-date text-muted small" style="font-size:0.75rem;">
@@ -565,6 +571,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         </select>
                     </div>
 
+                    <!-- Recurring Expense Checkbox -->
+                    <div class="mb-3">
+                        <div class="form-check p-3 bg-light rounded-3">
+                            <input class="form-check-input" type="checkbox" id="isRecurring" name="is_recurring" value="1">
+                            <label class="form-check-label d-flex align-items-center" for="isRecurring">
+                                <span class="me-2">🔄</span>
+                                <div>
+                                    <strong>Tandai sebagai Pengeluaran Rutin</strong>
+                                    <br>
+                                    <small class="text-muted">Otomatis copy ke bulan berikutnya (contoh: sewa, listrik, internet)</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">CATATAN</label>
                         <textarea id="noteText" class="form-control bg-light border-0" rows="2" placeholder="Beli Nasi Goreng..." required></textarea>
@@ -626,6 +647,21 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="{{ $cat->id }}">{{ $cat->icon }} {{ $cat->name }}</option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <!-- Recurring Expense Checkbox (Edit) -->
+                    <div class="mb-3">
+                        <div class="form-check p-3 bg-light rounded-3">
+                            <input class="form-check-input" type="checkbox" id="editIsRecurring" name="is_recurring" value="1">
+                            <label class="form-check-label d-flex align-items-center" for="editIsRecurring">
+                                <span class="me-2">🔄</span>
+                                <div>
+                                    <strong>Tandai sebagai Pengeluaran Rutin</strong>
+                                    <br>
+                                    <small class="text-muted">Otomatis copy ke bulan berikutnya</small>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Shopping List Section (Edit) -->

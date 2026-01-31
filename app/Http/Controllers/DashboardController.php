@@ -20,6 +20,9 @@ class DashboardController extends Controller
         $filterMonth = $request->query('month') ?? now()->format('Y-m');
         $userId = Auth::id();
         
+        // Auto-copy recurring expenses from previous month
+        $this->copyRecurringExpenses($userId, $filterMonth);
+        
         // Daily Quote
         // Daily Quote (Cache per user for 24 hours/midnight reset)
         $todaysQuote = \Illuminate\Support\Facades\Cache::remember('daily_quote_' . $userId . '_' . now()->format('Y-m-d'), now()->endOfDay(), function () {
@@ -175,6 +178,7 @@ class DashboardController extends Controller
             'date' => 'nullable|date',
             'month' => 'required|date_format:Y-m',
             'category_id' => 'nullable|exists:categories,id',
+            'is_recurring' => 'nullable|boolean',
             'details' => 'nullable|array',
             'details.*.name' => 'required|string',
             'details.*.qty' => 'required|integer|min:1|max:2147483647',
@@ -202,6 +206,7 @@ class DashboardController extends Controller
             'date' => $data['date'] ?? now(),
             'month' => $fixedMonth,
             'category_id' => $data['category_id'] ?? null,
+            'is_recurring' => $data['is_recurring'] ?? false,
         ]);
 
         // Handle Details
@@ -224,10 +229,11 @@ class DashboardController extends Controller
     public function update(Request $request, $id)
     {
         $data = $request->validate([
-            'note' => 'required|string',
+            'note' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0|max:2147483647',
             'date' => 'nullable|date',
             'category_id' => 'nullable|exists:categories,id',
+            'is_recurring' => 'nullable|boolean',
             'details' => 'nullable|array',
             'details.*.name' => 'required|string',
             'details.*.qty' => 'required|integer|min:1|max:2147483647',
@@ -242,6 +248,7 @@ class DashboardController extends Controller
             'date' => $request->date ?? $expense->date,
             'month' => date('Y-m', strtotime($request->date ?? $expense->date)), // Auto update month
             'category_id' => $request->category_id,
+            'is_recurring' => $request->is_recurring ?? false,
         ]);
 
         // Sync Details if provided (Replace Strategy)
@@ -643,6 +650,82 @@ class DashboardController extends Controller
             ], 500);
         }
 
+    }
+
+    /**
+     * Auto-copy recurring expenses from previous month
+     */
+    private function copyRecurringExpenses($userId, $targetMonth)
+    {
+        // Calculate previous month (add -01 to make it a valid date)
+        $previousMonth = \Carbon\Carbon::parse($targetMonth . '-01')
+            ->subMonth()
+            ->format('Y-m');
+        
+        \Log::info("CopyRecurringExpenses called", [
+            'user_id' => $userId,
+            'target_month' => $targetMonth,
+            'previous_month' => $previousMonth
+        ]);
+        
+        // Get recurring expenses from previous month
+        $recurringExpenses = Expense::where('user_id', $userId)
+            ->where('month', $previousMonth)
+            ->where('is_recurring', true)
+            ->with('details')
+            ->get();
+        
+        \Log::info("Found recurring expenses", [
+            'count' => $recurringExpenses->count(),
+            'expenses' => $recurringExpenses->pluck('note', 'id')->toArray()
+        ]);
+        
+        foreach ($recurringExpenses as $expense) {
+            // Check if this expense already exists in target month
+            $exists = Expense::where('user_id', $userId)
+                ->where('month', $targetMonth)
+                ->where('note', $expense->note)
+                ->where('category_id', $expense->category_id)
+                ->where('is_recurring', true)
+                ->exists();
+            
+            \Log::info("Checking expense", [
+                'expense_id' => $expense->id,
+                'note' => $expense->note,
+                'exists_in_target' => $exists
+            ]);
+            
+            if (!$exists) {
+                // Copy expense to new month
+                $newExpense = Expense::create([
+                    'user_id' => $userId,
+                    'note' => $expense->note,
+                    'amount' => $expense->amount,
+                    'date' => \Carbon\Carbon::parse($targetMonth . '-01')->startOfMonth()->format('Y-m-d'),
+                    'month' => $targetMonth,
+                    'category_id' => $expense->category_id,
+                    'is_recurring' => true,
+                ]);
+                
+                \Log::info("Created new expense", [
+                    'new_expense_id' => $newExpense->id,
+                    'note' => $newExpense->note
+                ]);
+                
+                // Copy expense details if exists
+                if ($expense->details && $expense->details->count() > 0) {
+                    foreach ($expense->details as $detail) {
+                        ExpenseDetail::create([
+                            'expense_id' => $newExpense->id,
+                            'name' => $detail->name,
+                            'qty' => $detail->qty,
+                            'price' => $detail->price,
+                            'is_checked' => false, // Reset checked status for new month
+                        ]);
+                    }
+                }
+            }
+        }
     }
 }
 
