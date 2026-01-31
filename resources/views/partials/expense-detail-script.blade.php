@@ -123,4 +123,33 @@
     }
 
 
+    // Open Edit Expense Modal
+    function openEditExpense(element) {
+        const id = element.getAttribute('data-id');
+        const categoryId = element.getAttribute('data-category-id');
+        const note = element.getAttribute('data-note');
+        const amount = element.getAttribute('data-amount');
+        const date = element.getAttribute('data-date');
+        
+        // Populate modal fields
+        document.getElementById('editExpenseId').value = id;
+        document.getElementById('editNoteText').value = note;
+        document.getElementById('editNoteCategory').value = categoryId || '';
+        document.getElementById('editDateInput').value = date; // Set date field
+        
+        // Format amount for display
+        const formattedAmount = new Intl.NumberFormat('id-ID').format(amount);
+        document.getElementById('editAmountInput').value = formattedAmount;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+        modal.show();
+        
+        // Load expense details if exists
+        loadEditExpenseDetails(id);
+    }
+    
+    // Make function globally accessible
+    window.openEditExpense = openEditExpense;
+
 </script>

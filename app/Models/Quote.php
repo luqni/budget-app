@@ -9,5 +9,5 @@ class Quote extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['content', 'source', 'type', 'is_active_for_date'];
+    protected $fillable = ['content', 'source', 'type', 'category', 'is_active_for_date'];
 }

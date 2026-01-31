@@ -747,7 +747,7 @@
             document.getElementById('editExpenseId').value = id;
             document.getElementById('editNoteText').value = note; 
             document.getElementById('editAmountInput').value = new Intl.NumberFormat('id-ID').format(amount);
-            document.getElementById('editDateInput').value = date;
+            document.getElementById('editDateInput').value = date.substring(0, 10);
             document.getElementById('editNoteCategory').value = catId;
             
             // Fetch Details Logic

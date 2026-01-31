@@ -41,6 +41,9 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Create default categories for new user
+        \Database\Seeders\DefaultCategorySeeder::createForUser($user->id);
+
         event(new Registered($user));
 
         Auth::login($user);

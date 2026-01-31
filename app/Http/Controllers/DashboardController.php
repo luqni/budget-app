@@ -95,7 +95,57 @@ class DashboardController extends Controller
         // Merge and Sort (Ascending: Smallest -> Largest)
         $months = $months->merge($futureMonths)->unique()->sort()->values();
 
-        $categories = Category::all();
+        $categories = Category::where('user_id', $userId)->get();
+
+        // === BUDGET WARNING LOGIC ===
+        $budgetWarnings = [];
+        
+        // 1. Global Budget Warning (80% of total income)
+        if ($totalIncome > 0) {
+            $usagePercentage = ($realizationTotal / $totalIncome) * 100;
+            if ($usagePercentage >= 80) {
+                $budgetWarnings[] = [
+                    'type' => 'global',
+                    'level' => $usagePercentage >= 100 ? 'danger' : 'warning',
+                    'message' => $usagePercentage >= 100 
+                        ? 'Pengeluaran sudah melebihi pemasukan!' 
+                        : 'Pengeluaran sudah mencapai ' . number_format($usagePercentage, 1) . '% dari pemasukan!',
+                    'percentage' => $usagePercentage
+                ];
+            }
+        }
+
+        // 2. Category Budget Warnings
+        $categoryWarnings = Category::where('user_id', $userId)
+            ->whereNotNull('budget_limit')
+            ->where('budget_limit', '>', 0)
+            ->get()
+            ->map(function ($category) use ($userId, $filterMonth) {
+                $used = $category->expenses()
+                    ->where('user_id', $userId)
+                    ->where('month', $filterMonth)
+                    ->sum('amount');
+                
+                $percentage = ($used / $category->budget_limit) * 100;
+                
+                if ($percentage >= 80) {
+                    return [
+                        'type' => 'category',
+                        'category' => $category->name,
+                        'icon' => $category->icon,
+                        'level' => $percentage >= 100 ? 'danger' : 'warning',
+                        'message' => 'Budget ' . $category->name . ' sudah ' . number_format($percentage, 1) . '%',
+                        'percentage' => $percentage,
+                        'used' => $used,
+                        'limit' => $category->budget_limit
+                    ];
+                }
+                return null;
+            })
+            ->filter()
+            ->values();
+
+        $budgetWarnings = array_merge($budgetWarnings, $categoryWarnings->toArray());
 
         return view('dashboard', [
             'groupedExpenses' => $groupedExpenses, // Keep for backward compatibility if needed
@@ -112,6 +162,7 @@ class DashboardController extends Controller
             'selectedMonth' => $filterMonth,
             'categories' => $categories,
             'todaysQuote' => $todaysQuote,
+            'budgetWarnings' => $budgetWarnings, // NEW
         ]);
     }
 
@@ -293,12 +344,32 @@ class DashboardController extends Controller
         
         $formatted = $data->map(function ($item) use ($totalExpense) {
             $percentage = $totalExpense > 0 ? round(($item->total / $totalExpense) * 100, 1) : 0;
+            
+            // Budget limit info
+            $budgetLimit = $item->category ? $item->category->budget_limit : null;
+            $budgetPercentage = null;
+            $budgetStatus = null;
+            
+            if ($budgetLimit && $budgetLimit > 0) {
+                $budgetPercentage = round(($item->total / $budgetLimit) * 100, 1);
+                if ($budgetPercentage >= 100) {
+                    $budgetStatus = 'danger';
+                } elseif ($budgetPercentage >= 80) {
+                    $budgetStatus = 'warning';
+                } else {
+                    $budgetStatus = 'success';
+                }
+            }
+            
             return [
                 'name' => $item->category ? $item->category->name : 'Lainnya',
                 'icon' => $item->category ? $item->category->icon : '❓',
                 'color' => $item->category ? ($item->category->color ?? '#0d6efd') : '#6c757d',
                 'total' => (int) $item->total,
-                'percentage' => $percentage
+                'percentage' => $percentage,
+                'budget_limit' => $budgetLimit,
+                'budget_percentage' => $budgetPercentage,
+                'budget_status' => $budgetStatus
             ];
         });
         
@@ -473,4 +544,122 @@ class DashboardController extends Controller
 
         return response()->json($totalIncome);
     }
+    /**
+     * Copy data from previous month
+     */
+    public function copyPreviousMonth(Request $request)
+    {
+        $request->validate([
+            'target_month' => 'required|date_format:Y-m',
+            'copy_income' => 'boolean',
+            'copy_recurring_expenses' => 'boolean',
+            'copy_all_expenses' => 'boolean',
+        ]);
+
+        $userId = Auth::id();
+        $targetMonth = $request->target_month;
+        
+        // Calculate previous month
+        $previousMonth = \Carbon\Carbon::createFromFormat('Y-m', $targetMonth)
+            ->subMonth()
+            ->format('Y-m');
+
+        $copied = [
+            'income' => 0,
+            'expenses' => 0
+        ];
+
+        try {
+            \DB::beginTransaction();
+
+            // 1. Copy Income (if requested and is_recurring = true)
+            if ($request->copy_income) {
+                $previousIncome = MonthlyIncome::where('user_id', $userId)
+                    ->where('month', $previousMonth)
+                    ->where('is_recurring', true)
+                    ->first();
+
+                if ($previousIncome) {
+                    // Check if target month already has income
+                    $existingIncome = MonthlyIncome::where('user_id', $userId)
+                        ->where('month', $targetMonth)
+                        ->first();
+
+                    if (!$existingIncome) {
+                        MonthlyIncome::create([
+                            'user_id' => $userId,
+                            'month' => $targetMonth,
+                            'income' => $previousIncome->income,
+                            'is_recurring' => true
+                        ]);
+                        $copied['income'] = 1;
+                    }
+                }
+            }
+
+            // 2. Copy Expenses
+            $expenseQuery = Expense::where('user_id', $userId)
+                ->where('month', $previousMonth);
+
+            if ($request->copy_recurring_expenses && !$request->copy_all_expenses) {
+                // Only recurring expenses
+                $expenseQuery->where('is_recurring', true);
+            }
+
+            $previousExpenses = $expenseQuery->get();
+
+            foreach ($previousExpenses as $expense) {
+                // Check if similar expense already exists in target month
+                $exists = Expense::where('user_id', $userId)
+                    ->where('month', $targetMonth)
+                    ->where('note', $expense->note)
+                    ->where('category_id', $expense->category_id)
+                    ->exists();
+
+                if (!$exists) {
+                    $newExpense = Expense::create([
+                        'user_id' => $userId,
+                        'note' => $expense->note,
+                        'amount' => $expense->amount,
+                        'month' => $targetMonth,
+                        'category_id' => $expense->category_id,
+                        'date' => \Carbon\Carbon::createFromFormat('Y-m', $targetMonth)->format('Y-m-d'),
+                        'is_recurring' => $expense->is_recurring
+                    ]);
+
+                    // Copy expense details if any
+                    if ($expense->details()->count() > 0) {
+                        foreach ($expense->details as $detail) {
+                            \App\Models\ExpenseDetail::create([
+                                'expense_id' => $newExpense->id,
+                                'name' => $detail->name,
+                                'qty' => $detail->qty,
+                                'price' => $detail->price,
+                                'is_checked' => false
+                            ]);
+                        }
+                    }
+
+                    $copied['expenses']++;
+                }
+            }
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'copied' => $copied,
+                'message' => 'Data berhasil dicopy dari ' . \Carbon\Carbon::createFromFormat('Y-m', $previousMonth)->translatedFormat('F Y')
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal copy data: ' . $e->getMessage()
+            ], 500);
+        }
+
+    }
 }
+

@@ -3,16 +3,18 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseDetailController;
+use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('welcome');
+});
 
 // Google OAuth Routes
 Route::get('auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
-
-// Route::get('/', function () {
-//     return view('welcome');
-// });
 
 Route::get('/', function () {
     return view('welcome');
@@ -46,7 +48,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/summary/alokasi', [DashboardController::class, 'getDataAlokasi'])->name('summary.alokasi');
     Route::get('/summary/realisasi', [DashboardController::class, 'getDataRealisasi'])->name('summary.realisasi');
     Route::get('/summary/income', [DashboardController::class, 'getIncome'])->name('summary.income');
+    
+    // Copy Previous Month
+    Route::post('/copy-previous-month', [DashboardController::class, 'copyPreviousMonth'])->name('copy.previous.month');
 
+    // Quotes Routes
+    Route::get('/quotes', [QuoteController::class, 'index'])->name('quotes.index');
+
+    // Categories Routes
+    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
 
 
