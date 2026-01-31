@@ -10,9 +10,8 @@ set -e
 echo "Running migrations..."
 php artisan migrate --force
 
-# Run seeders
-echo "Running seeders..."
-php artisan db:seed --force
+echo "Seeding default categories for users without categories..."
+php artisan db:seed --class=DefaultCategorySeeder --force
 
 # Cache configuration and routes
 echo "Caching configuration..."
