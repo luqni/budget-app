@@ -48,6 +48,9 @@ class GoogleController extends Controller
                     'avatar' => $googleUser->getAvatar(),
                     'password' => null, // OAuth users don't need password
                 ]);
+                
+                // Create default categories for new user
+                \Database\Seeders\DefaultCategorySeeder::createForUser($user->id);
             }
 
             // Login the user
