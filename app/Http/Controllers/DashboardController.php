@@ -280,6 +280,19 @@ class DashboardController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function toggleRealized($id)
+    {
+        $expense = Expense::where('user_id', Auth::id())->findOrFail($id);
+        $expense->is_realized = !$expense->is_realized;
+        $expense->save();
+
+        return response()->json([
+            'success' => true,
+            'is_realized' => $expense->is_realized,
+            'message' => $expense->is_realized ? 'Ditandai sebagai terealisasi' : 'Ditandai sebagai belum terealisasi'
+        ]);
+    }
+
     public function chartData(Request $request)
     {
         $userId = Auth::id();

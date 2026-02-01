@@ -150,6 +150,12 @@
         
     }
 
+    .realized-note {
+        text-decoration: line-through;
+        opacity: 0.6;
+        color: #6c757d !important;
+    }
+
     .cursor-pointer {
         cursor: pointer;
     }
@@ -356,6 +362,9 @@
                 onclick="if(!event.target.closest('button')) openEditExpense(this)">
                 <div class="text-section flex-grow-1">
                     <div class="d-flex align-items-center mb-1">
+                        <div class="form-check me-2" onclick="event.stopPropagation();">
+                            <input class="form-check-input" type="checkbox" onclick="toggleRealized({{ $exp->id }}, this)" id="checkRealized{{ $exp->id }}" {{ $exp->is_realized ? 'checked' : '' }}>
+                        </div>
                         @if($exp->category)
                              <span class="badge bg-light text-dark border me-2 rounded-pill fw-normal">
                                  {{ $exp->category->icon }} {{ $exp->category->name }}
@@ -370,7 +379,7 @@
                              {{ \Carbon\Carbon::parse($exp->date)->translatedFormat('d M') }} {{ $exp->created_at ? $exp->created_at->format('H:i') : '' }}
                         </span>
                     </div>
-                    <span class="note-text fw-semibold text-dark">{{ $exp->note }}</span> 
+                    <span class="note-text fw-semibold text-dark {{ $exp->is_realized ? 'realized-note' : '' }}" id="noteText{{ $exp->id }}">{{ $exp->note }}</span> 
                 </div>
                 <div class="text-end ms-2">
                     <span class="fw-bold text-danger d-block mb-1">Rp {{ number_format($exp->amount, 0, ',', '.') }}</span>
@@ -1072,7 +1081,79 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 </script>
-@endsection
+<script>
+    function toggleRealized(id, checkbox) {
+        const isChecked = checkbox.checked;
+        const noteText = document.getElementById('noteText' + id);
+
+        // Optimistic UI Update
+        if (noteText) {
+             if (isChecked) {
+                noteText.classList.add('realized-note');
+            } else {
+                noteText.classList.remove('realized-note');
+            }
+        }
+
+        fetch(`/expenses/${id}/toggle-realized`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                // Revert
+                checkbox.checked = !isChecked;
+                if (noteText) {
+                    if (isChecked) {
+                        noteText.classList.remove('realized-note');
+                    } else {
+                        noteText.classList.add('realized-note');
+                    }
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Gagal mengubah status realized.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            } else {
+                // Optional: Toast success
+                 const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Revert
+            checkbox.checked = !isChecked;
+             if (noteText) {
+                if (isChecked) {
+                    noteText.classList.remove('realized-note');
+                } else {
+                    noteText.classList.add('realized-note');
+                }
+            }
+        });
+    }
+</script>
 
 <!-- Copy Previous Month Modal -->
 <div class="modal fade" id="copyPreviousMonthModal" tabindex="-1">
@@ -1677,3 +1758,4 @@ function startProfileTour() {
     }
 }
 </style>
+@endsection

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Expense extends Model
 {
-    protected $fillable = ['user_id', 'note', 'amount', 'month', 'category_id', 'date', 'is_recurring'];
+    protected $fillable = ['user_id', 'note', 'amount', 'month', 'category_id', 'date', 'is_recurring', 'is_realized'];
 
     public function category()
     {
@@ -16,6 +16,7 @@ class Expense extends Model
 
     protected $casts = [
         'date' => 'date',
+        'is_realized' => 'boolean',
     ];
 
     public function details()

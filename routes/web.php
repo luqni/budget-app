@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/chart-category-data', [DashboardController::class, 'chartDataCategory'])->name('chart.category.data');
     Route::put('/expenses/{id}', [DashboardController::class, 'update'])->name('expenses.update');
     Route::delete('/expenses/{id}', [DashboardController::class, 'destroy'])->name('expenses.destroy');
+    Route::post('/expenses/{id}/toggle-realized', [DashboardController::class, 'toggleRealized'])->name('expenses.toggle-realized');
 
     Route::get('/expense/{id}/details', [ExpenseDetailController::class, 'index']);
     Route::post('/expense/detail', [ExpenseDetailController::class, 'store']);
