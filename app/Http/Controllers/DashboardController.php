@@ -17,6 +17,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Validate month parameter to prevent XSS
+        $request->validate([
+            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
+        ]);
+        
         $filterMonth = $request->query('month') ?? now()->format('Y-m');
         $userId = Auth::id();
         
@@ -295,6 +300,11 @@ class DashboardController extends Controller
 
     public function chartData(Request $request)
     {
+        // Validate month parameter
+        $request->validate([
+            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
+        ]);
+        
         $userId = Auth::id();
         $targetMonth = $request->query('month'); // Format 'Y-m', optional
 
@@ -324,6 +334,11 @@ class DashboardController extends Controller
 
     public function chartDataCategory(Request $request)
     {
+        // Validate month parameter
+        $request->validate([
+            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
+        ]);
+        
         $userId = Auth::id();
         $targetMonth = $request->query('month'); // 'Y-m'
 
@@ -494,6 +509,11 @@ class DashboardController extends Controller
     }
 
     public function getDataAlokasi(Request $request){
+        // Validate month parameter
+        $request->validate([
+            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
+        ]);
+        
         $userId = Auth::id();
         $filterMonth = $request->query('month');
         if (!$filterMonth) $filterMonth = now()->format('Y-m');
@@ -508,6 +528,11 @@ class DashboardController extends Controller
     }
 
     public function getDataRealisasi(Request $request){
+        // Validate month parameter
+        $request->validate([
+            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
+        ]);
+        
         $userId = Auth::id();
         $filterMonth = $request->query('month');
         if (!$filterMonth) $filterMonth = now()->format('Y-m');
@@ -523,6 +548,11 @@ class DashboardController extends Controller
     }
 
     public function getIncome(Request $request){
+        // Validate month parameter
+        $request->validate([
+            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
+        ]);
+        
         $userId = Auth::id();
         $filterMonth = $request->query('month');
         if (!$filterMonth) $filterMonth = now()->format('Y-m');
