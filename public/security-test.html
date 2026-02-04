@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Validation Test - Budget App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .test-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #cbd5e0;
+        }
+        
+        .test-item.success {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .test-item.error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+        
+        .test-name {
+            flex: 1;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        .test-input {
+            flex: 2;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #718096;
+            margin: 0 15px;
+        }
+        
+        .test-status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .test-status.pending {
+            background: #edf2f7;
+            color: #718096;
+        }
+        
+        .test-status.success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .test-status.error {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-test {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s;
+        }
+        
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        .btn-test:active {
+            transform: translateY(0);
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #edf2f7;
+            border-radius: 12px;
+        }
+        
+        .results h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .result-item {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-info {
+            background: #bee3f8;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Security Validation Test</h1>
+            <p>Test XSS & SQL Injection Protection pada Budget App</p>
+        </div>
+        
+        <div class="content">
+            <div class="alert alert-info">
+                <strong>Cara Menggunakan:</strong><br>
+                1. Pastikan kamu sudah login ke aplikasi<br>
+                2. Klik tombol "Run All Tests" di bawah<br>
+                3. Semua test yang valid harus ✅ (status 200), yang invalid harus ❌ (status 422)
+            </div>
+            
+            <!-- XSS Tests -->
+            <div class="test-section">
+                <h2>🔴 XSS Attack Tests (Harus Ditolak - 422)</h2>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-03<script>alert('xss')</script>">
+                    <div class="test-name">Script Injection</div>
+                    <div class="test-input">month=2026-03&lt;script&gt;alert('xss')&lt;/script&gt;</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-03<img src=x onerror=alert(1)>">
+                    <div class="test-name">Image Tag Injection</div>
+                    <div class="test-input">month=2026-03&lt;img src=x onerror=alert(1)&gt;</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-03' onload='alert(1)'">
+                    <div class="test-name">Event Handler Injection</div>
+                    <div class="test-input">month=2026-03' onload='alert(1)'</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-03abdabdnm">
+                    <div class="test-name">Random String Injection</div>
+                    <div class="test-input">month=2026-03abdabdnm</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+            </div>
+            
+            <!-- Invalid Format Tests -->
+            <div class="test-section">
+                <h2>⚠️ Invalid Format Tests (Harus Ditolak - 422)</h2>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-13">
+                    <div class="test-name">Invalid Month (13)</div>
+                    <div class="test-input">month=2026-13</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=26-01">
+                    <div class="test-name">Invalid Year (2 digits)</div>
+                    <div class="test-input">month=26-01</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-1">
+                    <div class="test-name">Invalid Month Format</div>
+                    <div class="test-input">month=2026-1</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+            </div>
+            
+            <!-- Valid Format Tests -->
+            <div class="test-section">
+                <h2>✅ Valid Format Tests (Harus Diterima - 200)</h2>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-01" data-valid="true">
+                    <div class="test-name">Valid Month (January)</div>
+                    <div class="test-input">month=2026-01</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-12" data-valid="true">
+                    <div class="test-name">Valid Month (December)</div>
+                    <div class="test-input">month=2026-12</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+                <div class="test-item" data-endpoint="/chart-category-data" data-param="month=2026-06" data-valid="true">
+                    <div class="test-name">Valid Month (June)</div>
+                    <div class="test-input">month=2026-06</div>
+                    <div class="test-status pending">Pending</div>
+                </div>
+            </div>
+            
+            <button class="btn-test" onclick="runAllTests()">🚀 Run All Tests</button>
+            
+            <div class="results" id="results" style="display:none;">
+                <h3>Test Results:</h3>
+                <div id="result-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function runAllTests() {
+            const testItems = document.querySelectorAll('.test-item');
+            const results = document.getElementById('results');
+            const resultContent = document.getElementById('result-content');
+            
+            results.style.display = 'block';
+            resultContent.innerHTML = '<div class="loading"></div> Running tests...';
+            
+            let passed = 0;
+            let failed = 0;
+            let resultHTML = '';
+            
+            for (const item of testItems) {
+                const endpoint = item.dataset.endpoint;
+                const param = item.dataset.param;
+                const isValid = item.dataset.valid === 'true';
+                const statusEl = item.querySelector('.test-status');
+                
+                statusEl.innerHTML = '<div class="loading"></div>';
+                statusEl.className = 'test-status pending';
+                
+                try {
+                    const response = await fetch(`${endpoint}?${param}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    const expectedStatus = isValid ? 200 : 422;
+                    const actualStatus = response.status;
+                    const success = actualStatus === expectedStatus;
+                    
+                    if (success) {
+                        passed++;
+                        statusEl.textContent = `✅ ${actualStatus}`;
+                        statusEl.className = 'test-status success';
+                        item.className = 'test-item success';
+                    } else {
+                        failed++;
+                        statusEl.textContent = `❌ ${actualStatus}`;
+                        statusEl.className = 'test-status error';
+                        item.className = 'test-item error';
+                    }
+                    
+                    resultHTML += `<div class="result-item" style="background: ${success ? '#c6f6d5' : '#fed7d7'}">
+                        ${success ? '✅' : '❌'} ${endpoint}?${param.substring(0, 30)}... 
+                        → Status: ${actualStatus} (Expected: ${expectedStatus})
+                    </div>`;
+                    
+                } catch (error) {
+                    failed++;
+                    statusEl.textContent = '❌ Error';
+                    statusEl.className = 'test-status error';
+                    item.className = 'test-item error';
+                    
+                    resultHTML += `<div class="result-item" style="background: #fed7d7">
+                        ❌ ${endpoint} → Error: ${error.message}
+                    </div>`;
+                }
+                
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            resultContent.innerHTML = `
+                <div style="margin-bottom: 15px; padding: 15px; background: ${passed === testItems.length ? '#c6f6d5' : '#fed7d7'}; border-radius: 8px; text-align: center; font-weight: bold;">
+                    ${passed === testItems.length ? '🎉 All Tests Passed!' : '⚠️ Some Tests Failed'}
+                    <br>
+                    <span style="color: #48bb78;">✅ Passed: ${passed}</span> | 
+                    <span style="color: #f56565;">❌ Failed: ${failed}</span>
+                </div>
+                ${resultHTML}
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -17,12 +17,20 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Validate month parameter to prevent XSS
-        $request->validate([
-            'month' => ['nullable', new \App\Rules\YearMonthFormat()]
-        ]);
+        // For dashboard page: gracefully handle invalid month by falling back to current month
+        // This prevents redirect issues when users manually edit URL
+        $filterMonth = $request->query('month');
         
-        $filterMonth = $request->query('month') ?? now()->format('Y-m');
+        // Validate format - if invalid, use current month instead of throwing error
+        if ($filterMonth && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $filterMonth)) {
+            $filterMonth = now()->format('Y-m');
+        }
+        
+        // If no month provided, use current month
+        if (!$filterMonth) {
+            $filterMonth = now()->format('Y-m');
+        }
+        
         $userId = Auth::id();
         
         // Auto-copy recurring expenses from previous month
