@@ -696,8 +696,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Income Modal (Initial Setup) -->
-@if(!isset($income) || $income == 0)
-<div class="modal fade show" id="incomeModal" style="display:block; background:rgba(0,0,0,0.8); z-index: 9999;">
+@if((!isset($income) || $income == 0) || session('need_income'))
+<div class="modal fade" id="incomeModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 p-3 border-0">
             <h4 class="mb-3 fw-bold text-center">Mulai Budgeting! 💰</h4>
@@ -712,11 +712,22 @@ document.addEventListener('DOMContentLoaded', function() {
                      <label class="form-label fw-bold small">TOTAL PEMASUKAN</label>
                     <input type="text" inputmode="numeric" name="income" class="form-control form-control-lg fw-bold text-success bg-light border-0" placeholder="Rp 0" required oninput="formatCurrency(this)">
                 </div>
-                <button class="btn btn-primary w-100 rounded-3 py-2 fw-bold">Mulai!</button>
+                <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 fw-bold">Mulai!</button>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+// Auto-show income modal for new users
+document.addEventListener('DOMContentLoaded', function() {
+    const incomeModal = document.getElementById('incomeModal');
+    if (incomeModal) {
+        const modal = new bootstrap.Modal(incomeModal);
+        modal.show();
+    }
+});
+</script>
 @endif
 
 <!-- Edit Income Modal -->
@@ -846,12 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <i class="bi bi-x mb-0" style="font-size: 16px;"></i>
     </button>
     <script type='text/javascript' src='https://edge-cdn.trakteer.id/js/trbtn-overlay.min.js?v=14-05-2025'></script>
-    <script type='text/javascript' class='troverlay'>
-        (function() {
-            var trbtnId = trbtnOverlay.init('Dukung Saya di Trakteer','#be1e2d','https://trakteer.id/luqni/tip/embed/modal','https://cdn.trakteer.id/images/mix/coffee.png','40','inline');
-            trbtnOverlay.draw(trbtnId);
-        })();
-    </script>
+    <script type='text/javascript' src='https://edge-cdn.trakteer.id/js/trbtn-overlay.min.js?v=14-05-2025'></script><script type='text/javascript' class='troverlay'>(function() {var trbtnId = trbtnOverlay.init('Dukung Saya di Trakteer','#be1e2d','https://trakteer.id/v1/luqni/tip/embed/modal','https://edge-cdn.trakteer.id/images/embed/trbtn-icon.png?v=14-05-2025','40','inline');trbtnOverlay.draw(trbtnId);})();</script>
 </div>
     </div>
 </div>
