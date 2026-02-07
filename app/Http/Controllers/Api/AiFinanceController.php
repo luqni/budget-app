@@ -11,8 +11,133 @@ use App\Models\MonthlyIncome;
 use App\Models\Income;
 use Carbon\Carbon;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
 class AiFinanceController extends Controller
 {
+    public function ask(Request $request)
+    {
+        $user = $request->user();
+        $today = Carbon::now()->format('Y-m-d');
+        $cacheKey = "ai_usage_{$user->id}_{$today}";
+        
+        // 1. Rate Limiting (3 requests per day)
+        $usage = Cache::get($cacheKey, 0);
+        if ($usage >= 3) {
+            return response()->json([
+                'answer' => "Maaf, kamu sudah mencapai batas tanya Asisten Keuangan hari ini (3x). Coba lagi besok ya! \n\n" . $this->getFallbackSummary($user),
+                'limit_reached' => true
+            ]);
+        }
+
+        // 2. Prepare Context Data
+        $contextData = $this->getFinancialContext($user);
+        $question = $request->input('question');
+
+        // 3. Call Gemini API
+        $apiKey = config('services.gemini.api_key');
+        
+        Log::info('AI Ask Request', [
+            'user_id' => $user->id,
+            'api_key_exists' => !empty($apiKey),
+            'question_length' => strlen($question)
+        ]);
+
+        if (!$apiKey) {
+            Log::warning('AI Finance: API Key missing');
+            return response()->json(['answer' => "Fitur AI belum dikonfigurasi sepenuhnya. Hubungi admin."]);
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={$apiKey}", [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $this->buildPrompt($contextData, $question)]
+                        ]
+                    ]
+                ]
+            ]);
+
+            Log::info('Gemini API Response Status: ' . $response->status());
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $answer = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Maaf, saya tidak bisa menjawab saat ini.';
+                
+                // Increment Usage
+                Cache::put($cacheKey, $usage + 1, now()->endOfDay());
+                
+                return response()->json([
+                    'answer' => $answer,
+                    'usage' => $usage + 1,
+                    'remaining' => 3 - ($usage + 1)
+                ]);
+            } else {
+                Log::error('Gemini API Error: ' . $response->body());
+                return response()->json([
+                    'answer' => "Maaf, sedang ada gangguan pada layanan AI. \n\n" . $this->getFallbackSummary($user)
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('AI Finance Error: ' . $e->getMessage());
+            return response()->json([
+                'answer' => "Terjadi kesalahan sistem. \n\n" . $this->getFallbackSummary($user)
+            ]);
+        }
+    }
+
+    private function getFinancialContext($user)
+    {
+        $month = Carbon::now()->format('Y-m');
+        
+        $totalExpense = Expense::where('user_id', $user->id)->where('month', $month)->sum('amount');
+        $mainIncome = MonthlyIncome::where('user_id', $user->id)->where('month', $month)->value('income') ?? 0;
+        $addIncome = Income::where('user_id', $user->id)->where('month', $month)->sum('amount');
+        $totalIncome = $mainIncome + $addIncome;
+        $balance = $totalIncome - $totalExpense;
+        
+        $topCategories = Expense::where('user_id', $user->id)
+            ->where('month', $month)
+            ->with('category')
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->orderByDesc('total')
+            ->take(5)
+            ->get()
+            ->map(function($item) {
+                return ($item->category->name ?? 'Lainnya') . ': ' . number_format($item->total, 0, ',', '.');
+            })->implode(', ');
+
+        return "Bulan: " . Carbon::now()->translatedFormat('F Y') . "\n" .
+               "Pemasukan: Rp " . number_format($totalIncome, 0, ',', '.') . "\n" .
+               "Pengeluaran: Rp " . number_format($totalExpense, 0, ',', '.') . "\n" .
+               "Sisa Saldo: Rp " . number_format($balance, 0, ',', '.') . "\n" .
+               "Top Pengeluaran: " . $topCategories;
+    }
+
+    private function buildPrompt($context, $question)
+    {
+        return "Kamu adalah asisten keuangan pribadi yang bijak dan ramah bernama 'Qanaah AI'. \n" .
+               "Gunakan data keuangan berikut untuk menjawab pertanyaan user:\n\n" .
+               $context . "\n\n" .
+               "Pertanyaan User: \"{$question}\"\n\n" .
+               "Jawablah dengan ringkas, jelas, dan memotivasi untuk berhemat atau bijak mengatur uang (gunakan prinsip Qanaah/rasa cukup). " .
+               "Jika pertanyaan tidak relevan dengan keuangan, jawab dengan sopan bahwa kamu hanya fokus pada keuangan.";
+    }
+
+    private function getFallbackSummary($user)
+    {
+        // Simple summary without AI
+        $context = $this->getFinancialContext($user);
+        return "Ringkasan Data Kamu:\n" . $context;
+    }
+
     public function summary(Request $request)
     {
         $user = $request->user();

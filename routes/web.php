@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
 
 
 
+    Route::post('/ai/ask', [\App\Http\Controllers\Api\AiFinanceController::class, 'ask'])->name('ai.ask');
 });
 
 

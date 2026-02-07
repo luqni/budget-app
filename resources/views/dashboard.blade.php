@@ -300,6 +300,78 @@
         <button id="summaryButton" class="btn btn-sm btn-light text-primary mt-2 w-100 fw-bold">Tanya Selengkapnya</button>
     </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manual Modal Toggle to avoid Bootstrap conflicts
+    const summaryBtn = document.getElementById('summaryButton');
+    if(summaryBtn) {
+        summaryBtn.addEventListener('click', function() {
+            const modalEl = document.getElementById('aiAssistantModal');
+            if(modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        });
+    }
+
+    const aiForm = document.getElementById('aiAskForm');
+    const responseContainer = document.getElementById('aiResponseContainer');
+    const limitCountSpan = document.getElementById('limitCount');
+    
+    if(aiForm) {
+        aiForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const question = document.getElementById('aiQuestion').value;
+            
+            // Show user question (optional, or just clear input)
+            // responseContainer.innerHTML += ... 
+            
+            // Show Loader
+            showLoader();
+            
+            fetch("{{ route('ai.ask') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(res => res.json())
+            .then(data => {
+                responseContainer.style.display = 'block';
+                
+                // Format response (simple markdown-like to HTML)
+                let cleanAnswer = data.answer.replace(/\n/g, '<br>');
+                cleanAnswer = cleanAnswer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+                
+                responseContainer.innerHTML = `
+                    <div class="text-dark small" style="line-height: 1.6;">
+                        ${cleanAnswer}
+                    </div>
+                `;
+                
+                // Update limit
+                if(data.remaining !== undefined) {
+                    limitCountSpan.innerText = data.remaining;
+                } else if(data.limit_reached) {
+                    limitCountSpan.innerText = 0;
+                }
+                
+                document.getElementById('aiQuestion').value = ''; // Clear input
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error', 'Gagal menghubungkan ke asisten.', 'error');
+            })
+            .finally(() => {
+                hideLoader();
+            });
+        });
+    }
+});
+</script>
+
     <!-- Recent Transactions Header -->
     <div class="d-flex justify-content-between align-items-center mb-3 px-2">
         <h6 class="fw-bold m-0">Transaksi Terakhir</h6>
@@ -798,6 +870,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <ul class="list-group list-group-flush border rounded-3 overflow-hidden" id="additionalIncomeList">
                     @forelse ($additionalIncomes as $addIncome)
                         <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+                        <!-- AI Assistant Modal -->
+
                             <div>
                                 <div class="fw-semibold text-dark small">{{ $addIncome->title }}</div>
                                 <div class="text-muted" style="font-size: 0.7rem;">{{ \Carbon\Carbon::parse($addIncome->date)->translatedFormat('d M Y') }}</div>
@@ -821,25 +895,45 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- AI Chat Modal (Bottom Sheet style) -->
-<div class="modal fade" id="chatModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-fullscreen-md-down">
-        <div class="modal-content rounded-top-4 border-0">
-            <div class="modal-header border-0 bg-primary text-white">
-                <h5 class="modal-title"><i class="bi bi-robot me-2"></i> Asisten Keuangan</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- AI Assistant Modal -->
+<div class="modal fade" id="aiAssistantModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                        <i class="bi bi-robot text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold">Asisten Keuangan</h5>
+                        <small class="text-muted">Didukung oleh AI (Qanaah)</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body bg-light" id="chatContent">
-                 <div class="text-center text-muted my-5">
-                     <i class="bi bi-chat-dots fs-1 mb-2 d-block"></i>
-                     <small>Tanyakan apa saja tentang keuanganmu!</small>
-                 </div>
-            </div>
-            <div class="modal-footer p-2 bg-white">
-                <div class="input-group">
-                    <input type="text" class="form-control border-0 bg-light" placeholder="Tulis pesan..." id="aiChatInput">
-                    <button class="btn btn-primary rounded-end" id="aiChatSend"><i class="bi bi-send-fill"></i></button>
+            <div class="modal-body">
+                <div id="aiResponseContainer" class="bg-light p-3 rounded-3 mb-3" style="min-height: 100px; max-height: 300px; overflow-y: auto; display: none;">
+                    <!-- AI Response will appear here -->
+                    <div class="d-flex align-items-center text-muted small">
+                        <i class="bi bi-info-circle me-2"></i> Silakan tanya pengeluaranmu...
+                    </div>
                 </div>
 
+                <!-- Limit Info -->
+                <div id="aiLimitInfo" class="text-center mb-3">
+                     <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">
+                        Batas Harian: <span id="limitCount">3</span>/3
+                     </span>
+                </div>
+
+                <form id="aiAskForm">
+                    <div class="input-group">
+                        <input type="text" id="aiQuestion" class="form-control border-primary" placeholder="Misal: Berapa sisa uangku?" required>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -924,43 +1018,53 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script>
     // Simple Tab Switcher
+    // Simple Tab Switcher
     function switchTab(tabId) {
-        // Hide all tabs
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        // Deactivate nav items
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        
-        // Show selected
-        document.getElementById('tab-' + tabId).classList.add('active');
-        
-        // Activate nav item
-        const navItems = document.querySelectorAll('.nav-item');
-        if(tabId === 'home') navItems[0].classList.add('active');
-        if(tabId === 'history') navItems[1].classList.add('active');
-        if(tabId === 'stats') navItems[2].classList.add('active');
-        if(tabId === 'profile') navItems[3].classList.add('active');
+        // Show Loader for transition effect
+        showLoader();
 
-        // Special case for Stats to re-render chart if needed
-        // Special case for Stats to re-render chart if needed
-        if(tabId === 'stats') {
-            setTimeout(() => {
-                if(window.expenseChart) {
-                    window.expenseChart.resize();
-                    window.expenseChart.update();
-                }
-                if(window.rincianKategoriChart) {
-                    window.rincianKategoriChart.resize();
-                    window.rincianKategoriChart.update();
-                }
-                if(window.categoryChart) {
-                    window.categoryChart.resize();
-                    window.categoryChart.update();
-                }
-            }, 100);
-        }
-        
-        // Save state
-        localStorage.setItem('activeTab', tabId);
+        // Small timeout to allow loader to render before heavy DOM updates (if any)
+        setTimeout(() => {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // Deactivate nav items
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            const selectedTab = document.getElementById('tab-' + tabId);
+            if(selectedTab) selectedTab.classList.add('active');
+            
+            // Activate nav item
+            const navItems = document.querySelectorAll('.nav-item');
+            if(tabId === 'home') navItems[0].classList.add('active');
+            if(tabId === 'history') navItems[1].classList.add('active');
+            if(tabId === 'stats') navItems[2].classList.add('active');
+            if(tabId === 'profile') navItems[3].classList.add('active');
+
+            // Special case for Stats to re-render chart if needed
+            if(tabId === 'stats') {
+                setTimeout(() => {
+                    if(window.expenseChart) {
+                        window.expenseChart.resize();
+                        window.expenseChart.update();
+                    }
+                    if(window.rincianKategoriChart) {
+                        window.rincianKategoriChart.resize();
+                        window.rincianKategoriChart.update();
+                    }
+                    if(window.categoryChart) {
+                        window.categoryChart.resize();
+                        window.categoryChart.update();
+                    }
+                }, 100);
+            }
+            
+            // Save state
+            localStorage.setItem('activeTab', tabId);
+            
+            // Hide loader (will respect minimum display time)
+            hideLoader();
+        }, 50); // Short delay to ensure loader is painted
     }
     
     // Restore Tab

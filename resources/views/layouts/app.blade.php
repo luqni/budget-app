@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         body {
@@ -67,6 +67,52 @@
             text-decoration: underline !important;
         }
     </style>
+    <style>
+        /* Custom Qanaah Loader */
+        .qanaah-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .qanaah-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+            animation: pulse-custom 2s infinite ease-in-out;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+
+        .qanaah-text {
+            font-family: 'Figtree', sans-serif;
+            color: #0d6efd;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .qanaah-tagline {
+            font-family: 'Figtree', sans-serif;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-style: italic;
+            animation: user-fade 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse-custom {
+            0% { transform: scale(0.95); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.9; }
+        }
+
+        @keyframes user-fade {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
     
     <!-- Intro.js for Dashboard Tour -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/introjs.min.css">
@@ -75,9 +121,18 @@
 <body>
     <div id="ajaxLoader" 
         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-        background:rgba(255,255,255,0.6); backdrop-filter:blur(2px);
+        background:rgba(255,255,255,0.85); backdrop-filter:blur(4px);
         z-index:9999; align-items:center; justify-content:center;">
-        <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
+        
+        <div class="qanaah-loader">
+            <img src="https://cdn-icons-png.flaticon.com/512/2344/2344132.png" alt="Qanaah Logo" class="qanaah-logo">
+            <div class="qanaah-text">Qanaah</div>
+            <div class="qanaah-tagline">"Cukup itu Kaya..."</div>
+            
+            <div class="mt-3">
+                <div class="spinner-border text-primary spinner-border-sm" role="status" style="width: 1rem; height: 1rem; opacity: 0.5;"></div>
+            </div>
+        </div>
     </div>
     
     <!-- Main Container -->
@@ -202,13 +257,70 @@
     </script>
 </body>
 <script>
+let loaderStartTime = 0;
+const MIN_LOADER_TIME = 500; // ms
+
 function showLoader() {
-    document.getElementById('ajaxLoader').style.display = 'flex';
+    loaderStartTime = Date.now();
+    const loader = document.getElementById('ajaxLoader');
+    if(loader) loader.style.display = 'flex';
 }
 
 function hideLoader() {
-    document.getElementById('ajaxLoader').style.display = 'none';
+    const loader = document.getElementById('ajaxLoader');
+    if(loader) {
+        const elapsed = Date.now() - loaderStartTime;
+        const remaining = MIN_LOADER_TIME - elapsed;
+        
+        if (remaining > 0) {
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, remaining);
+        } else {
+            loader.style.display = 'none';
+        }
+    }
 }
+
+// Global Loader Triggers for SPA-like feel
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Form Submits
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            // Don't show if it's an AJAX form handled manually elsewhere usually, 
+            // but for standard submits we want it.
+            // If the form has target="_blank" or specifically excluded, skip.
+            if(!this.target && !this.hasAttribute('target')) {
+                showLoader();
+            }
+        });
+    });
+
+    // 2. Link Clicks
+    document.body.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (link && link.href) {
+            // Check if internal link
+            const isInternal = link.hostname === window.location.hostname;
+            const isAnchor = link.getAttribute('href').startsWith('#');
+            const isNewTab = link.target === '_blank';
+            const isVoid = link.getAttribute('href') === 'javascript:void(0)' || link.getAttribute('href') === '#';
+            const isControl = e.ctrlKey || e.metaKey || e.shiftKey;
+            
+            if (isInternal && !isAnchor && !isNewTab && !isVoid && !isControl) {
+                // Exclude Bootstrap toggles (Modals, Tabs, etc)
+                if(!link.hasAttribute('data-bs-toggle') && !link.hasAttribute('data-bs-dismiss')) {
+                     showLoader();
+                }
+            }
+        }
+    });
+});
+
+// Handle Back/Forward Cache (Hide loader if user navigates back)
+window.addEventListener('pageshow', function(event) {
+    hideLoader();
+});
 
 // Service Worker Registration with Auto-Update
 if ('serviceWorker' in navigator) {
