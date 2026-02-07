@@ -38,10 +38,12 @@ class AiFinanceController extends Controller
 
         // 3. Call Gemini API
         $apiKey = config('services.gemini.api_key');
+        $baseUrl = config('services.gemini.base_url');
         
         Log::info('AI Ask Request', [
             'user_id' => $user->id,
             'api_key_exists' => !empty($apiKey),
+            'base_url' => $baseUrl,
             'question_length' => strlen($question)
         ]);
 
@@ -53,7 +55,7 @@ class AiFinanceController extends Controller
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={$apiKey}", [
+            ])->post("{$baseUrl}/v1beta/models/gemini-2.5-flash-lite:generateContent?key={$apiKey}", [
                 'contents' => [
                     [
                         'parts' => [
