@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AiFinanceController extends Controller
 {
@@ -21,22 +22,26 @@ class AiFinanceController extends Controller
     {
         $user = $request->user();
         $today = Carbon::now()->format('Y-m-d');
-        $cacheKey = "ai_usage_{$user->id}_{$today}";
-        
+        $key = 'ai_finance:' . $user->id;
+
         // 1. Rate Limiting (3 requests per day)
-        $usage = Cache::get($cacheKey, 0);
-        if ($usage >= 3) {
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
             return response()->json([
                 'answer' => "Maaf, kamu sudah mencapai batas tanya Asisten Keuangan hari ini (3x). Coba lagi besok ya! \n\n" . $this->getFallbackSummary($user),
-                'limit_reached' => true
+                'limit_reached' => true,
+                'retry_after' => $seconds
             ]);
         }
 
-        // 2. Prepare Context Data
+        // 2. Increment immediately (Prevent Race Condition)
+        RateLimiter::hit($key, 86400);
+
+        // 3. Prepare Context Data
         $contextData = $this->getFinancialContext($user);
         $question = $request->input('question');
 
-        // 3. Call Gemini API
+        // 4. Call Gemini API
         $apiKey = config('services.gemini.api_key');
         $baseUrl = config('services.gemini.base_url');
         
@@ -71,13 +76,10 @@ class AiFinanceController extends Controller
                 $data = $response->json();
                 $answer = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Maaf, saya tidak bisa menjawab saat ini.';
                 
-                // Increment Usage
-                Cache::put($cacheKey, $usage + 1, now()->endOfDay());
-                
                 return response()->json([
                     'answer' => $answer,
-                    'usage' => $usage + 1,
-                    'remaining' => 3 - ($usage + 1)
+                    'usage' => RateLimiter::attempts($key),
+                    'remaining' => RateLimiter::remaining($key, 3)
                 ]);
             } else {
                 Log::error('Gemini API Error: ' . $response->body());

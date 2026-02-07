@@ -322,11 +322,14 @@ document.addEventListener('DOMContentLoaded', function() {
         aiForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const question = document.getElementById('aiQuestion').value;
+            const submitBtn = aiForm.querySelector('button[type="submit"]');
+
+            if (submitBtn.disabled) return; // Prevent double submit
+
+            // Disable button and show loader
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
             
-            // Show user question (optional, or just clear input)
-            // responseContainer.innerHTML += ... 
-            
-            // Show Loader
             showLoader();
             
             fetch("{{ route('ai.ask') }}", {
@@ -366,6 +369,9 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .finally(() => {
                 hideLoader();
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
             });
         });
     }
