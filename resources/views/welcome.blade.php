@@ -233,6 +233,12 @@
     </div>
 
     <div class="footer">
+
+        <div class="mb-3">
+            <a href="{{ route('documentation') }}" class="text-muted text-decoration-none small">
+                <i class="bi bi-book me-1"></i> Baca Dokumentasi Lengkap
+            </a>
+        </div>
         &copy; {{ date('Y') }} Qanaah App. Crafted for Peace of Mind.
     </div>
 

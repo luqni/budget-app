@@ -144,6 +144,10 @@
             <nav class="navbar navbar-light bg-white border-bottom px-3 py-2 sticky-top shadow-sm d-md-none">
                  <span class="navbar-brand mb-0 h1 fw-bold">{{ $title ?? 'Qanaah' }}</span>
                  <div class="d-flex align-items-center gap-3">
+                    <a href="{{ route('documentation') }}" class="btn btn-light text-primary shadow-sm rounded-circle d-flex align-items-center justify-content-center p-0" 
+                        style="width: 40px; height: 40px;" title="Dokumentasi">
+                        <i class="bi bi-book-half fs-5"></i>
+                    </a>
                     <button class="btn btn-light text-warning shadow-sm rounded-circle position-relative d-flex align-items-center justify-content-center p-0" 
                         style="width: 40px; height: 40px;"
                         data-bs-toggle="modal" data-bs-target="#quoteModal" id="quoteBtn">
