@@ -201,21 +201,33 @@
             </div>
             <div class="feature-item">
                 <div class="feature-icon">
-                    <i class="bi bi-wifi-off"></i>
+                    <i class="bi bi-piggy-bank-fill"></i>
                 </div>
-                <div class="feature-text">Mode Offline</div>
+                <div class="feature-text">Target Impian</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+                <div class="feature-text">Catatan Hutang</div>
             </div>
             <div class="feature-item">
                 <div class="feature-icon">
                     <i class="bi bi-robot"></i>
                 </div>
-                <div class="feature-text">Chatbox</div>
+                <div class="feature-text">Tanya AI</div>
             </div>
             <div class="feature-item">
                 <div class="feature-icon">
                     <i class="bi bi-chat-quote-fill"></i>
                 </div>
-                <div class="feature-text">Renungan Harian</div>
+                <div class="feature-text">Renungan</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="bi bi-wifi-off"></i>
+                </div>
+                <div class="feature-text">Mode Offline</div>
             </div>
         </div>
     </div>

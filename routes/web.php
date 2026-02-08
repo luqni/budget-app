@@ -62,6 +62,20 @@ Route::middleware('auth')->group(function () {
     Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
+    // Debts Routes
+    Route::get('/debts', [App\Http\Controllers\DebtController::class, 'index'])->name('debts.index');
+    Route::post('/debts', [App\Http\Controllers\DebtController::class, 'store'])->name('debts.store');
+    Route::put('/debts/{id}', [App\Http\Controllers\DebtController::class, 'update'])->name('debts.update');
+    Route::delete('/debts/{id}', [App\Http\Controllers\DebtController::class, 'destroy'])->name('debts.destroy');
+    Route::post('/debts/{id}/toggle-paid', [App\Http\Controllers\DebtController::class, 'markAsPaid'])->name('debts.toggle-paid');
+
+    // Savings Routes
+    Route::get('/savings', [App\Http\Controllers\SavingController::class, 'index'])->name('savings.index');
+    Route::post('/savings', [App\Http\Controllers\SavingController::class, 'store'])->name('savings.store');
+    Route::put('/savings/{id}', [App\Http\Controllers\SavingController::class, 'update'])->name('savings.update');
+    Route::delete('/savings/{id}', [App\Http\Controllers\SavingController::class, 'destroy'])->name('savings.destroy');
+    Route::post('/savings/{id}/deposit', [App\Http\Controllers\SavingController::class, 'deposit'])->name('savings.deposit');
+
 
 
     Route::post('/ai/ask', [\App\Http\Controllers\Api\AiFinanceController::class, 'ask'])->name('ai.ask');

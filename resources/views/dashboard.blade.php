@@ -544,6 +544,16 @@ document.addEventListener('DOMContentLoaded', function() {
             <i class="bi bi-chevron-right small text-muted"></i>
         </a>
 
+        <a href="{{ route('debts.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-decoration-none">
+            <div><i class="bi bi-journal-text me-3 text-danger"></i> Catatan Hutang & Piutang</div>
+            <i class="bi bi-chevron-right small text-muted"></i>
+        </a>
+
+        <a href="{{ route('savings.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-decoration-none">
+            <div><i class="bi bi-piggy-bank-fill me-3 text-success"></i> Target Tabungan (Impian)</div>
+            <i class="bi bi-chevron-right small text-muted"></i>
+        </a>
+
         <a href="{{ route('categories.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 text-decoration-none">
             <div><i class="bi bi-grid-3x3-gap-fill me-3 text-info"></i> Kelola Kategori</div>
             <i class="bi bi-chevron-right small text-muted"></i>
@@ -1591,11 +1601,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const homeTab = document.querySelector('.nav-item:nth-child(1)');
     const profileTab = document.querySelector('.nav-item:nth-child(4)');
     
+    // Handle Tab Switching from URL
+    const tabParam = urlParams.get('tab');
+    if(tabParam) {
+        switchTab(tabParam);
+    }
+
     const isHomeTabActive = homeTab && homeTab.classList.contains('active');
     const isProfileTabActive = profileTab && profileTab.classList.contains('active');
     
     // Start dashboard tour if on Home tab and not completed (or forced)
-    if (isHomeTabActive && (forceTour || !dashboardTourCompleted)) {
+    if (isHomeTabActive && (forceTour || !dashboardTourCompleted) && !tabParam) {
         setTimeout(() => {
             startDashboardTour();
         }, 1000);
@@ -1609,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Start profile tour if on Profile tab and not completed
-    if (isProfileTabActive && !profileTourCompleted) {
+    if (isProfileTabActive && !profileTourCompleted && !tabParam) {
         setTimeout(() => {
             startProfileTour();
         }, 1500);
@@ -1636,6 +1652,16 @@ function startProfileTour() {
             {
                 element: document.querySelector('button[data-bs-target="#editIncomeModal"]'),
                 intro: '<div style="display:flex;align-items:flex-start;gap:8px"><span style="font-size:20px;line-height:1">💰</span><div><strong>Set Gaji Bulanan</strong><br><small>Atur gaji bulanan kamu di sini</small></div></div>',
+                position: 'bottom'
+            },
+            {
+                element: document.querySelector('a[href="{{ route("debts.index") }}"]'),
+                intro: '<div style="display:flex;align-items:flex-start;gap:8px"><span style="font-size:20px;line-height:1">📕</span><div><strong>Catatan Hutang</strong><br><small>Jangan lupa bayar hutang & tagih piutang di sini!</small></div></div>',
+                position: 'bottom'
+            },
+            {
+                element: document.querySelector('a[href="{{ route("savings.index") }}"]'),
+                intro: '<div style="display:flex;align-items:flex-start;gap:8px"><span style="font-size:20px;line-height:1">🐖</span><div><strong>Target Impian</strong><br><small>Buat target tabungan (Umroh, Gadget, dll) dan pantau progressnya.</small></div></div>',
                 position: 'bottom'
             },
             {
