@@ -9,6 +9,8 @@ use App\Models\ExpenseDetail;
 use App\Models\User;
 use App\Models\MonthlyIncome;
 use App\Models\Income;
+use App\Models\Debt;
+use App\Models\Saving;
 use Carbon\Carbon;
 
 use Illuminate\Support\Facades\Http;
@@ -118,11 +120,25 @@ class AiFinanceController extends Controller
                 return ($item->category->name ?? 'Lainnya') . ': ' . number_format($item->total, 0, ',', '.');
             })->implode(', ');
 
+        // Debt & Receivables
+        $totalPayable = Debt::where('user_id', $user->id)->where('type', 'payable')->where('status', 'unpaid')->sum('amount');
+        $totalReceivable = Debt::where('user_id', $user->id)->where('type', 'receivable')->where('status', 'unpaid')->sum('amount');
+
+        // Savings
+        $totalSavings = Saving::where('user_id', $user->id)->sum('current_amount');
+        $savingGoals = Saving::where('user_id', $user->id)->get()->map(function($s) {
+            return "{$s->name} (" . number_format($s->current_amount, 0, ',', '.') . " / " . number_format($s->target_amount, 0, ',', '.') . ")";
+        })->implode(', ');
+
         return "Bulan: " . Carbon::now()->translatedFormat('F Y') . "\n" .
                "Pemasukan: Rp " . number_format($totalIncome, 0, ',', '.') . "\n" .
                "Pengeluaran: Rp " . number_format($totalExpense, 0, ',', '.') . "\n" .
                "Sisa Saldo: Rp " . number_format($balance, 0, ',', '.') . "\n" .
-               "Top Pengeluaran: " . $topCategories;
+               "Top Pengeluaran: " . $topCategories . "\n\n" .
+               "Hutang (Harus dibayar): Rp " . number_format($totalPayable, 0, ',', '.') . "\n" .
+               "Piutang (Uang di orang): Rp " . number_format($totalReceivable, 0, ',', '.') . "\n" .
+               "Total Tabungan Terkumpul: Rp " . number_format($totalSavings, 0, ',', '.') . "\n" .
+               "Target Tabungan: " . ($savingGoals ?: '-');
     }
 
     private function buildPrompt($context, $question)

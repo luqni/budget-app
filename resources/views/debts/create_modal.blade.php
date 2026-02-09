@@ -24,7 +24,8 @@
 
                     <div class="mb-3">
                         <label class="form-label text-muted small">Jumlah (Rp)</label>
-                        <input type="number" name="amount" class="form-control form-control-lg bg-light border-0" placeholder="0" required>
+                        <input type="text" name="amount" class="form-control form-control-lg bg-light border-0" placeholder="0" required
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');">
                     </div>
 
                     <div class="mb-3">

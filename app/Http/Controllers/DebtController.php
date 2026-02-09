@@ -34,6 +34,12 @@ class DebtController extends Controller
 
     public function store(Request $request)
     {
+        // Remove dots from amount
+        $request->merge(['amount' => str_replace('.', '', $request->amount)]);
+
+        // Remove dots from amount
+        $request->merge(['amount' => str_replace('.', '', $request->amount)]);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
@@ -58,6 +64,9 @@ class DebtController extends Controller
     public function update(Request $request, $id)
     {
         $debt = Debt::where('user_id', Auth::id())->findOrFail($id);
+
+        // Remove dots from amount
+        $request->merge(['amount' => str_replace('.', '', $request->amount)]);
 
         $request->validate([
             'name' => 'required|string|max:255',
