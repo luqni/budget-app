@@ -12,7 +12,8 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label text-center w-100 text-muted small">Mau nabung berapa?</label>
-                        <input type="number" name="amount" class="form-control form-control-lg fs-1 fw-bold text-center text-success border-0 bg-light" placeholder="Rp 0" required autofocus>
+                        <input type="text" id="deposit_amount_display" class="form-control form-control-lg fs-1 fw-bold text-center text-success border-0 bg-light" placeholder="Rp 0" required autofocus>
+                        <input type="hidden" name="amount" id="deposit_amount_raw">
                     </div>
                     <p class="text-center text-muted small">Semangat! Sedikit demi sedikit lama-lama menjadi bukit.</p>
                 </div>
@@ -29,5 +30,24 @@
         const id = document.getElementById('depositSavingId').value;
         const form = document.getElementById('depositForm');
         form.action = '/savings/' + id + '/deposit';
+        
+        // Reset inputs on modal show
+        document.getElementById('deposit_amount_display').value = '';
+        document.getElementById('deposit_amount_raw').value = '';
+    });
+
+    const depositDisplay = document.getElementById('deposit_amount_display');
+    const depositRaw = document.getElementById('deposit_amount_raw');
+
+    depositDisplay.addEventListener('input', function(e) {
+        let value = this.value.replace(/\D/g, '');
+        if (value === '') {
+            depositRaw.value = '';
+            this.value = '';
+            return;
+        }
+        
+        depositRaw.value = value;
+        this.value = new Intl.NumberFormat('id-ID').format(value);
     });
 </script>

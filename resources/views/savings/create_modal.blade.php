@@ -15,7 +15,8 @@
 
                     <div class="mb-3">
                         <label class="form-label text-muted small">Target Jumlah (Rp)</label>
-                        <input type="number" name="target_amount" class="form-control form-control-lg bg-light border-0" placeholder="0" required>
+                        <input type="text" id="target_amount_display" class="form-control form-control-lg bg-light border-0" placeholder="0" required>
+                        <input type="hidden" name="target_amount" id="target_amount_raw">
                     </div>
 
                     <div class="mb-3">
@@ -23,9 +24,16 @@
                         <div class="d-flex gap-2 justify-content-center p-3 bg-light rounded-3 overflow-auto">
                             <!-- Radio buttons customized as icons -->
                             @foreach(['💰', '🏠', '🚗', '✈️', '🕋', '📱', '🎓', '💍'] as $emoji)
-                                <input type="radio" class="btn-check" name="icon" id="icon_{{ $loop->index }}" value="{{ $emoji }}" {{ $loop->first ? 'checked' : '' }}>
-                                <label class="btn btn-outline-light text-dark border-0 fs-2" for="icon_{{ $loop->index }}">{{ $emoji }}</label>
+                                <input type="radio" class="btn-check icon-radio" name="icon" id="icon_{{ $loop->index }}" value="{{ $emoji }}" {{ $loop->first ? 'checked' : '' }}>
+                                <label class="btn btn-outline-light text-dark border-0 fs-2 icon-label" for="icon_{{ $loop->index }}">{{ $emoji }}</label>
                             @endforeach
+                            <style>
+                                .icon-radio:checked + .icon-label {
+                                    background-color: #e9ecef !important;
+                                    border: 2px solid #0d6efd !important;
+                                    transform: scale(1.1);
+                                }
+                            </style>
                         </div>
                     </div>
 
@@ -55,3 +63,20 @@
         </div>
     </div>
 </div>
+
+<script>
+    const targetDisplay = document.getElementById('target_amount_display');
+    const targetRaw = document.getElementById('target_amount_raw');
+
+    targetDisplay.addEventListener('input', function(e) {
+        let value = this.value.replace(/\D/g, '');
+        if (value === '') {
+            targetRaw.value = '';
+            this.value = '';
+            return;
+        }
+        
+        targetRaw.value = value;
+        this.value = new Intl.NumberFormat('id-ID').format(value);
+    });
+</script>

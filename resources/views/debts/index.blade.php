@@ -43,7 +43,7 @@
     <!-- Hutang Tab -->
     <div class="tab-pane fade show active" id="payable" role="tabpanel">
         @if($payables->isEmpty())
-            <div class="text-center py-5">
+            <div class="text-center py-5 d-flex flex-column align-items-center">
                 <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" width="80" class="mb-3 opacity-50">
                 <p class="text-muted">Alhamdulillah, tidak ada hutang.</p>
             </div>
@@ -59,7 +59,7 @@
     <!-- Piutang Tab -->
     <div class="tab-pane fade" id="receivable" role="tabpanel">
         @if($receivables->isEmpty())
-            <div class="text-center py-5">
+            <div class="text-center py-5 d-flex flex-column align-items-center">
                 <img src="https://cdn-icons-png.flaticon.com/512/2953/2953363.png" width="80" class="mb-3 opacity-50">
                 <p class="text-muted">Belum ada catatan piutang.</p>
             </div>

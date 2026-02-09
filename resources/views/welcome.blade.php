@@ -101,10 +101,10 @@
         
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             padding: 20px;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto 40px;
             width: 100%;
         }
@@ -115,6 +115,18 @@
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .feature-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
         }
         .feature-icon {
             font-size: 1.5rem;
@@ -134,6 +146,18 @@
             font-weight: 600;
             color: #444;
         }
+        .new-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ffc107; /* Warning color for visibility */
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
         
         .footer {
             padding: 20px;
@@ -148,10 +172,19 @@
                 padding: 60px 20px;
             }
             .app-title { font-size: 3.5rem; }
-            .features-grid { padding: 40px 20px; gap: 30px; }
+            .features-grid { 
+                padding: 40px 20px; 
+                gap: 30px; 
+                grid-template-columns: repeat(3, 1fr); /* 3 Columns on desktop */
+            }
             .feature-item { padding: 30px 20px; }
             .feature-icon { width: 60px; height: 60px; font-size: 2rem; }
-            .feature-text { font-size: 1rem; }
+            .feature-text { font-size: 1.1rem; }
+        }
+        @media (min-width: 992px) {
+            .features-grid {
+               max-width: 900px;
+            }
         }
     </style>
 </head>
@@ -200,18 +233,21 @@
                 <div class="feature-text">Catat Cepat</div>
             </div>
             <div class="feature-item">
+                <span class="new-badge">Baru</span>
                 <div class="feature-icon">
                     <i class="bi bi-piggy-bank-fill"></i>
                 </div>
                 <div class="feature-text">Target Impian</div>
             </div>
             <div class="feature-item">
+                <span class="new-badge">Baru</span>
                 <div class="feature-icon">
                     <i class="bi bi-journal-text"></i>
                 </div>
                 <div class="feature-text">Catatan Hutang</div>
             </div>
             <div class="feature-item">
+                <span class="new-badge">Baru</span>
                 <div class="feature-icon">
                     <i class="bi bi-robot"></i>
                 </div>

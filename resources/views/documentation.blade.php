@@ -14,20 +14,23 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f8f9fa;
             color: #333;
-            min-height: 100vh;
+            height: 100vh; /* Use fixed height to prevent scrolling on body if iframe scrolls */
+            margin: 0;
             display: flex;
             flex-direction: column;
+            overflow: hidden; /* Hide body scrollbar */
         }
         .header {
             background: white;
-            padding: 15px 20px;
+            padding: 0 20px;
+            height: 70px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
+            position: relative;
             z-index: 100;
+            flex-shrink: 0;
         }
         .app-brand {
             font-weight: 700;
@@ -37,18 +40,20 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            white-space: nowrap;
         }
         .back-btn {
             text-decoration: none;
             color: #555;
             font-weight: 500;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 5px;
             padding: 8px 15px;
             border-radius: 50px;
             transition: all 0.2s;
             background: #f0f2f5;
+            width: fit-content;
         }
         .back-btn:hover {
             background: #e9ecef;
@@ -57,27 +62,49 @@
         .iframe-container {
             flex: 1;
             width: 100%;
-            height: calc(100vh - 70px); /* Adjust based on header height */
+            position: relative;
             overflow: hidden;
         }
         iframe {
             width: 100%;
             height: 100%;
             border: none;
+            display: block;
+        }
+        
+        /* Mobile adjustment */
+        @media (max-width: 576px) {
+            .header {
+                padding: 0 15px;
+            }
+            .back-text {
+                display: none;
+            }
+            .back-btn {
+                padding: 8px;
+                border-radius: 50%;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="{{ Auth::check() ? route('dashboard') : url('/') }}" class="back-btn">
-            <i class="bi bi-arrow-left"></i> 
-            {{ Auth::check() ? 'Kembali ke Dashboard' : 'Kembali ke Beranda' }}
-        </a>
+        <!-- Left: Back Button -->
+        <div>
+            <a href="{{ Auth::check() ? route('dashboard') : url('/') }}" class="back-btn" title="Kembali">
+                <i class="bi bi-arrow-left"></i> 
+                <span class="back-text">{{ Auth::check() ? 'Dashboard' : 'Kembali ke Beranda' }}</span>
+            </a>
+        </div>
+
+        <!-- Center: Brand -->
         <div class="app-brand">
             <i class="bi bi-book"></i> Dokumentasi
         </div>
-        <div style="width: 100px;"></div> <!-- Spacer -->
+
+        <!-- Right: Spacer for balance -->
+        <div></div> 
     </div>
 
     <div class="iframe-container">
