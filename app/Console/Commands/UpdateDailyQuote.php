@@ -30,6 +30,13 @@ class UpdateDailyQuote extends Command
         if ($quote) {
             $quote->update(['is_active_for_date' => $today]);
             $this->info("Today's quote updated: " . $quote->content);
+
+            // Send push notifications to all users with active subscriptions
+            $users = \App\Models\User::whereHas('pushSubscriptions')->get();
+            foreach ($users as $user) {
+                $user->notify(new \App\Notifications\DailyQuoteNotification($quote));
+            }
+            $this->info("Notifications sent to " . $users->count() . " users.");
         } else {
             $this->error('No quotes found in database.');
         }

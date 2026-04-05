@@ -13,7 +13,12 @@
     <title>{{ $title ?? 'Dashboard' }}</title>
 
     <!-- Scripts & Styles -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        window.Laravel = {
+            vapidPublicKey: '{{ config('webpush.vapid.public_key') }}'
+        };
+    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/web-push.js'])
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons CDN -->
@@ -405,87 +410,41 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
     
-    // === BUDGET WARNING NOTIFICATIONS ===
-    checkBudgetNotifications();
+    // === PUSH NOTIFICATION PROMPT ===
+    if (window.WebPush && window.WebPush.isSupported) {
+        checkPushPermission();
+    }
 });
 
-function checkBudgetNotifications() {
-    // Check if Notification is supported
-    if (!("Notification" in window)) {
-        console.log('Browser does not support notifications');
-        return;
-    }
-    
-    const today = new Date();
-    const dayOfMonth = today.getDate();
-    const lastNotificationDate = localStorage.getItem('lastBudgetNotification');
-    const todayStr = today.toISOString().split('T')[0];
-    
-    // Don't spam - only once per day
-    if (lastNotificationDate === todayStr) {
-        return;
-    }
-    
-    // Request permission if not granted
+function checkPushPermission() {
     if (Notification.permission === "default") {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                scheduleBudgetNotifications(dayOfMonth, todayStr);
+        // Show custom alert to avoid aggressive browser prompt
+        Swal.fire({
+            title: 'Aktifkan Notifikasi? 🔔',
+            text: 'Dapatkan renungan pagi, tips hemat, dan pengingat pengeluaran rutin langsung di HP-mu.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Aktifkan Sekarang',
+            cancelButtonText: 'Nanti Saja',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.WebPush.subscribe().then(sub => {
+                    if (sub) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Notifikasi Aktif!',
+                            text: 'Terima kasih! Kamu akan menerima pembaruan dari Qanaah.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                });
             }
         });
-    } else if (Notification.permission === "granted") {
-        scheduleBudgetNotifications(dayOfMonth, todayStr);
     }
-}
-
-function scheduleBudgetNotifications(dayOfMonth, todayStr) {
-    // 1. Beginning of Month Reminder (Day 1-3)
-    if (dayOfMonth >= 1 && dayOfMonth <= 3) {
-        showNotification(
-            "🎯 Waktunya Budgeting!",
-            "Awal bulan adalah waktu terbaik untuk merencanakan keuangan. Jangan lupa set budget limit untuk setiap kategori!",
-            todayStr
-        );
-    }
-    
-    // 2. Mid-Month Check (Day 15)
-    else if (dayOfMonth === 15) {
-        showNotification(
-            "📊 Cek Keuangan Tengah Bulan",
-            "Sudah setengah bulan berjalan. Yuk cek apakah pengeluaran masih sesuai budget!",
-            todayStr
-        );
-    }
-    
-    // 3. End of Month Warning (Day 25-28)
-    else if (dayOfMonth >= 25 && dayOfMonth <= 28) {
-        showNotification(
-            "⚠️ Akhir Bulan Mendekat",
-            "Bulan ini hampir berakhir. Pastikan pengeluaran tidak melebihi budget ya!",
-            todayStr
-        );
-    }
-}
-
-function showNotification(title, body, dateStr) {
-    // Check if we have budget warnings from server
-    const hasWarnings = document.querySelector('.alert-warning, .alert-danger');
-    
-    if (hasWarnings) {
-        // Customize message if there are active warnings
-        body = "⚠️ Ada kategori yang sudah mendekati limit! " + body;
-    }
-    
-    new Notification(title, {
-        body: body,
-        icon: '/android-chrome-192x192.png',
-        badge: '/android-chrome-192x192.png',
-        tag: 'budget-reminder',
-        requireInteraction: false,
-        vibrate: [200, 100, 200]
-    });
-    
-    localStorage.setItem('lastBudgetNotification', dateStr);
 }
 </script>
 <script>

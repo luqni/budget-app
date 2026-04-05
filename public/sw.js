@@ -94,3 +94,59 @@ self.addEventListener('fetch', (event) => {
         })
     );
 });
+
+// Push Event: Handle incoming push notifications
+self.addEventListener('push', (event) => {
+    if (!(self.Notification && self.Notification.permission === 'granted')) {
+        return;
+    }
+
+    let data = {
+        title: 'Qanaah',
+        body: 'Ada pembaruan untuk Anda!',
+        icon: 'https://cdn-icons-png.flaticon.com/512/2344/2344132.png',
+        badge: 'https://cdn-icons-png.flaticon.com/512/2344/2344132.png',
+        data: { url: '/' }
+    };
+
+    if (event.data) {
+        try {
+            const payload = event.data.json();
+            data = { ...data, ...payload };
+        } catch (e) {
+            data.body = event.data.text();
+        }
+    }
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: data.icon,
+            badge: data.badge,
+            data: data.data,
+            vibrate: [200, 100, 200],
+            actions: data.actions || []
+        })
+    );
+});
+
+// Notification Click Event: Handle clicks on notifications
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const urlToOpen = event.notification.data.url || '/';
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            for (let i = 0; i < windowClients.length; i++) {
+                const client = windowClients[i];
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
+    );
+});

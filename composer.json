@@ -11,9 +11,11 @@
     "require": {
         "php": "^8.2",
         "fakerphp/faker": "^1.23",
+        "laravel-notification-channels/webpush": "^10.5",
         "laravel/framework": "^12.0",
         "laravel/socialite": "^5.24",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "minishlink/web-push": "^10.0"
     },
     "require-dev": {
         "laravel/breeze": "^2.3",

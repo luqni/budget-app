@@ -788,6 +788,12 @@ class DashboardController extends Controller
                 'source_expense_id' => $expense->id,
                 'target_month' => $targetMonth
             ]);
+
+            // 5. Send Notification
+            $user = \App\Models\User::find($userId);
+            if ($user) {
+                $user->notify(new \App\Notifications\RecurringExpenseNotification($newExpense));
+            }
         }
     }
 }
