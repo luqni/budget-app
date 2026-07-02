@@ -28,4 +28,19 @@ class Debt extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function installments()
+    {
+        return $this->hasMany(DebtInstallment::class);
+    }
+
+    public function getPaidAmountAttribute()
+    {
+        return $this->installments->sum('amount');
+    }
+
+    public function getRemainingAmountAttribute()
+    {
+        return max(0, $this->amount - $this->paid_amount);
+    }
 }

@@ -13,21 +13,23 @@ class DebtController extends Controller
         $user = Auth::user();
 
         // Get Debts (Hutang) - I owe money
-        $payables = Debt::where('user_id', $user->id)
+        $payables = Debt::with('installments')
+            ->where('user_id', $user->id)
             ->where('type', 'payable')
             ->orderBy('status', 'desc') // 'unpaid' > 'paid', so desc puts unpaid first
             ->orderBy('due_date', 'asc')
             ->get();
 
         // Get Receivables (Piutang) - People owe me money
-        $receivables = Debt::where('user_id', $user->id)
+        $receivables = Debt::with('installments')
+            ->where('user_id', $user->id)
             ->where('type', 'receivable')
             ->orderBy('status', 'desc') // 'unpaid' > 'paid'
             ->orderBy('due_date', 'asc')
             ->get();
 
-        $totalPayable = $payables->where('status', 'unpaid')->sum('amount');
-        $totalReceivable = $receivables->where('status', 'unpaid')->sum('amount');
+        $totalPayable = $payables->where('status', 'unpaid')->sum('remaining_amount');
+        $totalReceivable = $receivables->where('status', 'unpaid')->sum('remaining_amount');
 
         return view('debts.index', compact('payables', 'receivables', 'totalPayable', 'totalReceivable'));
     }
@@ -98,5 +100,49 @@ class DebtController extends Controller
         $message = ($debt->status === 'paid') ? 'Ditandai sebagai lunas!' : 'Ditandai sebagai belum lunas.';
         
         return redirect()->back()->with('success', $message);
+    }
+
+    public function storeInstallment(Request $request, $id)
+    {
+        $debt = Debt::where('user_id', Auth::id())->findOrFail($id);
+
+        $request->merge(['amount' => str_replace('.', '', $request->amount)]);
+
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'payment_date' => 'required|date',
+        ]);
+
+        $debt->installments()->create([
+            'amount' => $request->amount,
+            'payment_date' => $request->payment_date,
+        ]);
+
+        // Auto calculate remaining and set status
+        if ($debt->remaining_amount <= 0 && $debt->status !== 'paid') {
+            $debt->status = 'paid';
+            $debt->save();
+            return redirect()->back()->with('success', 'Cicilan berhasil ditambahkan. Hutang telah Lunas!');
+        }
+
+        return redirect()->back()->with('success', 'Cicilan berhasil ditambahkan.');
+    }
+
+    public function destroyInstallment($id)
+    {
+        $installment = \App\Models\DebtInstallment::whereHas('debt', function($query) {
+            $query->where('user_id', Auth::id());
+        })->findOrFail($id);
+
+        $debt = $installment->debt;
+        $installment->delete();
+
+        // Check if remaining amount > 0 and status is paid, revert it
+        if ($debt->remaining_amount > 0 && $debt->status === 'paid') {
+            $debt->status = 'unpaid';
+            $debt->save();
+        }
+
+        return redirect()->back()->with('success', 'Riwayat cicilan berhasil dihapus.');
     }
 }

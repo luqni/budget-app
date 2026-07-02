@@ -16,8 +16,13 @@
         </div>
         <div class="text-end">
             <div class="fw-bold {{ $debt->status == 'paid' ? 'text-muted' : ($debt->type == 'payable' ? 'text-danger' : 'text-success') }}">
-                Rp {{ number_format($debt->amount, 0, ',', '.') }}
+                Rp {{ number_format($debt->remaining_amount, 0, ',', '.') }}
             </div>
+            @if($debt->paid_amount > 0 && $debt->status == 'unpaid')
+                <div class="text-muted mb-1" style="font-size: 0.75rem;">
+                    Sisa dari Rp {{ number_format($debt->amount, 0, ',', '.') }}
+                </div>
+            @endif
             @if($debt->status == 'paid')
                 <span class="badge bg-success-subtle text-success rounded-pill" style="font-size: 0.7rem;">Lunas</span>
             @else
@@ -28,6 +33,10 @@
     
     <!-- Action Footer -->
     <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#installmentModal{{ $debt->id }}">
+            <i class="bi bi-wallet2 me-1"></i> Cicilan
+        </button>
+
         <form action="{{ route('debts.destroy', $debt->id) }}" method="POST" onsubmit="return confirm('Yakin hapus data ini?')">
             @csrf
             @method('DELETE')
@@ -50,3 +59,5 @@
         </form>
     </div>
 </div>
+
+@include('debts.installments_modal', ['debt' => $debt])

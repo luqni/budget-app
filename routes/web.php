@@ -72,6 +72,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/debts/{id}', [App\Http\Controllers\DebtController::class, 'update'])->name('debts.update');
     Route::delete('/debts/{id}', [App\Http\Controllers\DebtController::class, 'destroy'])->name('debts.destroy');
     Route::post('/debts/{id}/toggle-paid', [App\Http\Controllers\DebtController::class, 'markAsPaid'])->name('debts.toggle-paid');
+    
+    // Debt Installments Routes
+    Route::post('/debts/{id}/installments', [App\Http\Controllers\DebtController::class, 'storeInstallment'])->name('debts.installments.store');
+    Route::delete('/debts/installments/{id}', [App\Http\Controllers\DebtController::class, 'destroyInstallment'])->name('debts.installments.destroy');
 
     // Savings Routes
     Route::get('/savings', [App\Http\Controllers\SavingController::class, 'index'])->name('savings.index');
