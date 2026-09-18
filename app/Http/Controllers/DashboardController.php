@@ -479,19 +479,32 @@ class DashboardController extends Controller
     }
 
     public function countUsers(){
-        $totalUsers = \App\Models\User::count();
+        $thirtyDaysAgo = now()->subDays(30);
+
+        // Fetch all users with max activity timestamp across expenses, incomes, and monthlyIncomes (exclude sensitive columns like email)
+        $allUsers = \App\Models\User::select('id', 'name', 'created_at', 'avatar')
+            ->withMax('expenses', 'created_at')
+            ->withMax('incomes', 'created_at')
+            ->withMax('monthlyIncomes', 'created_at')
+            ->orderBy('name', 'asc')
+            ->get()
+            ->map(function ($user) use ($thirtyDaysAgo) {
+                $timestamps = array_filter([
+                    $user->expenses_max_created_at,
+                    $user->incomes_max_created_at,
+                    $user->monthly_incomes_max_created_at,
+                ]);
+                $latest = !empty($timestamps) ? max($timestamps) : null;
+                $user->last_activity_at = $latest ? \Carbon\Carbon::parse($latest) : null;
+                $user->is_active = $user->last_activity_at && $user->last_activity_at->gte($thirtyDaysAgo);
+                return $user;
+            });
+
+        $totalUsers = $allUsers->count();
 
         // Active Users: Users who have added an Expense OR Income (Main/Additional) in the last 30 days.
-        $thirtyDaysAgo = now()->subDays(30);
-        
-        $activeUsers = \App\Models\User::whereHas('expenses', function($q) use ($thirtyDaysAgo) {
-            $q->where('created_at', '>=', $thirtyDaysAgo);
-        })->orWhereHas('incomes', function($q) use ($thirtyDaysAgo) {
-             $q->where('created_at', '>=', $thirtyDaysAgo);
-        })->orWhereHas('monthlyIncomes', function($q) use ($thirtyDaysAgo) {
-             $q->where('created_at', '>=', $thirtyDaysAgo);
-        })->count();
-
+        $activeUsersList = $allUsers->filter(fn($user) => $user->is_active)->values();
+        $activeUsers = $activeUsersList->count();
 
         // User Growth Data: Group users by creation month
         // We will show data for the last 12 months for better visualization
@@ -513,7 +526,7 @@ class DashboardController extends Controller
 
         $totalDownloads = \App\Models\ApplicationStat::first()->downloads ?? 0;
 
-        return view('user', compact('totalUsers', 'activeUsers', 'months', 'growthData', 'totalDownloads'));
+        return view('user', compact('totalUsers', 'activeUsers', 'allUsers', 'activeUsersList', 'months', 'growthData', 'totalDownloads'));
     }
 
     public function getDataAlokasi(Request $request){
